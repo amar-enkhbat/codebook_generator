@@ -9,7 +9,10 @@ from pylsl import StreamInfo, StreamOutlet
 from dareplane_utils.general.time import sleep_s
 
 # Adjust to your Arduino's port (check Device Manager on Windows or `ls /dev/tty*` on Linux/Mac)
-PORT = '/dev/tty.usbmodem156466901'  # Change to the correct port
+PORT = '/dev/tty.usbmodem156466901'  # Change to the correct port (MAC)
+PORT = 'COM5'  # Change to the correct port (Windows)
+
+
 BAUD_RATE = 115200
 arduino = serial.Serial(PORT, BAUD_RATE, timeout=1)
 time.sleep(2)  # Wait for Arduino to initialize
@@ -81,5 +84,6 @@ def main():
     
     
 if __name__ == '__main__':
-    optimize_timer_resolution_unix()
+    # optimize_timer_resolution_unix()
+    # optimize_timer_resolution_windows()
     main()
