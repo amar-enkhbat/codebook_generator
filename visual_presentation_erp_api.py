@@ -8,7 +8,9 @@ import requests
 from dareplane_utils.general.time import sleep_s
 
 class StimuliVisualization(pyglet.window.Window):
-    def __init__(self, width, height, interval, fullscreen=False, vsync=False):
+    def __init__(self, width=1920, height=1080, interval=120, fullscreen=False, vsync=False):
+        """Initialize the window and properties."""
+        # Adjust window size based on fullscreen
         if fullscreen:
             pyglet.options.dpi_scaling = 'scaled'
             display = pyglet.display.get_display()
@@ -27,6 +29,9 @@ class StimuliVisualization(pyglet.window.Window):
         
         # Sequence properties
         self.n_lasers = 8
+        self.sequence = [0] * self.n_lasers
+        
+        # Sequence fetch URL
         self.url = "http://127.0.0.1:8000/get_sequence"
         
         # Background properties
@@ -35,24 +40,29 @@ class StimuliVisualization(pyglet.window.Window):
         
         # Circle properties
         self.circles = []
-        self.circle_spacing = 160
+        if fullscreen:
+            self.circle_spacing = 160
+        else:
+            self.circle_spacing = 80
         self.circle_radius = 75
-        self.circle_init_coors = (width // 2 // 4, height//2)
+        self.circle_init_coors = (width // 2 // 4, height // 2)
         self.circle_background_color = (0, 255, 0, 255) # "RG" elicited the strongest response
         self.circle_highlight_color = (255, 0, 0, 255) # # "RG" elicited the strongest response
         # self.circle_background_color = (0, 0, 0, 255) # "WB" elicited the strongest response
         # self.circle_highlight_color = (255, 255, 255, 255) # "WB" elicited the strongest response
-        
         for i in range(self.n_lasers):
             self.circles.append(shapes.Circle(self.circle_init_coors[0] + (self.circle_spacing + self.circle_radius * 2) * i, self.circle_init_coors[1], radius=self.circle_radius, color=self.circle_background_color, batch=self.batch))
         
-        self.sequence = [0] * self.n_lasers
+        # Add description text on screen
+        self.description = pyglet.text.Label('Press ENTER to start', font_size=60, x=width//2, y=height//8, anchor_x='center', anchor_y='center', color=(0, 0, 0, 255), batch=self.batch)
+        
         # Load sequences
         self.ctx = dict(
             pause = True,
         )
         
     def lasers_on(self):
+        """Turn on the lasers based on the sequence."""
         for i, value in enumerate(self.sequence):
             if value == 1:
                 self.circles[i].color = self.circle_highlight_color
@@ -60,36 +70,51 @@ class StimuliVisualization(pyglet.window.Window):
                 self.circles[i].color = self.circle_background_color
     
     def lasers_off(self):
+        """Turn off all lasers."""
         for i in range(self.n_lasers):
             self.circles[i].color = self.circle_background_color
             
-    def update(self, dt):
-        if not self.ctx['pause']:
-            start_time = datetime.now()   
+    def hide_text(self):
+        """Hide the description text."""
+        self.description.text = ''
+        
+    def fetch_sequence(self):
+        """Fetch the sequence from the API."""
+        try:
             response = requests.get(self.url)
             # if response is invalid or empty, do nothing
-            if response.status_code != 200:
-                return
-            elif not response.json():
-                return
-            # if response is valid, update the sequence
-            self.sequence = response.json()['sequence']
+            if response.status_code == 200 and response.json():
+                self.sequence = response.json()['sequence']
+        except requests.exceptions.RequestException as e:
+            # print(f"Error fetching sequence: {e}")
+            return
             
+    def update(self, dt):
+        """Update the window every dt seconds."""
+        if not self.ctx['pause']:
+            self.hide_text()
+            
+            start_time = datetime.now()
+            # Fetch sequence
+            self.fetch_sequence()
+            # Turn on lasers
             self.lasers_on()
+            
             end_time = datetime.now()
             # Print update time in milliseconds
             print(f'Update time: {(end_time - start_time).microseconds / 1000} ms')
+        else:
+            # Display text
+            self.lasers_off()
     
     def on_draw(self):
-        # if not self.ctx['pause']:
         demo.clear()
         demo.batch.draw()
         self.fps_display.draw()
 
     def on_key_press(self, symbol, modifiers):
-        print(self.ctx['pause'])
         if symbol == key.ENTER:
-            print('Enter key was pressed.')
+            print('Enter key was pressed. Pause:', self.ctx['pause'])
             self.ctx['pause'] = not self.ctx['pause']
         
         if symbol == key.ESCAPE:
