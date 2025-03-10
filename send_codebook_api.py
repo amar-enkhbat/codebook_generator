@@ -8,7 +8,8 @@ import numpy as np
 import requests
 from pylsl import StreamInfo, StreamOutlet
 from dareplane_utils.general.time import sleep_s
-
+import logging
+logger = logging.getLogger(__name__)
 
 class StimController:
     def __init__(self, port, baud_rate=115200, url="http://127.0.0.1:8000/update_sequence"):
@@ -18,57 +19,64 @@ class StimController:
         
         self.optimize_timer_resolution()
         
-        self.trial_duration = 12
-        self.trial_rest_duration = 3
-        self.n_trials = 8
-        
-        self.run_duration = self.trial_duration * self.n_trials + self.trial_rest_duration * (self.n_trials - 1)
-        self.run_rest_duration = 30
-        self.n_runs = 3
-        
-        self.arduino = None
-        self.outlet = None
-        self.init_lsl_stream()
-        self.connect_teensy()
-        
         self.codebooks = []
         self.n_objs = 8
+        
+        # Connect to teensy
+        self.teensy = None
+        self.connect_teensy()
+        
+        # Start LSL stream
+        self.lsl_outlet = None
+        self.init_lsl_stream()
         
         # Check if API is running
         try:
             requests.get(self.url)
         except Exception:
-            print("API not running. Not pushing data to GUI.")
+            logging.warning("API not running. Not sending data to visual stimulation.")
+        
+        # Experimental setup for codebooks 1 and 2
+        self.sequence_on_duration = 0.1
+        self.sequence_off_duration = 0.15
+        self.sequence_duration = self.sequence_on_duration + self.sequence_off_duration
+        self.trial_duration = 12
+        self.trial_rest_duration = 3
+        self.n_trials = self.n_objs
+        
+        self.run_duration = self.trial_duration * self.n_trials + self.trial_rest_duration * (self.n_trials - 1)
+        self.run_rest_duration = 30
+        self.n_runs = 3
     
     def connect_teensy(self):
         try:
-            self.arduino = serial.Serial(self.port, self.baud_rate, timeout=1)
+            self.teensy = serial.Serial(self.port, self.baud_rate, timeout=1)
             time.sleep(2)  # Wait for Arduino to initialize
         except Exception as e:
-            print(f"Teensy not connected: {e}")
+            logging.warning(f"Teensy not connected: {e}")
     
     def init_lsl_stream(self):
         info = StreamInfo(name='LaserMarkerStream', type='Markers', channel_count=1, nominal_srate=0, channel_format='string', source_id='CharacterEvent')
-        self.outlet = StreamOutlet(info)
+        self.lsl_outlet = StreamOutlet(info)
     
     def optimize_timer_resolution(self):
         """Optimize the timer resolution to improve precision."""
         import ctypes
         try:
-            print("Optimizing timer resolution...")
+            logging.info("Optimizing timer resolution...")
             ctypes.windll.winmm.timeBeginPeriod(1)
-            print("Timer resolution set to 1ms.")
+            logging.info("Timer resolution set to 1ms.")
         except Exception as e:
-            print(f"Error optimizing timer resolution: {e}")
+            logging.warning(f"Error optimizing timer resolution: {e}")
         
         p = psutil.Process(os.getpid())
         p.nice(psutil.HIGH_PRIORITY_CLASS if os.name == 'nt' else 10)
-        print("Priority set. Running script...")
+        logging.info("Priority set. Running script...")
     
     def send_led_values(self, values):
-        if self.arduino is not None:
+        if self.teensy is not None:
             data_str = ",".join(map(str, values)) + "\n"
-            self.arduino.write(data_str.encode())  # Send data
+            self.teensy.write(data_str.encode())  # Send data
     
     def load_codebook(self, filepath):
         codebook = np.load(filepath).T
@@ -80,8 +88,8 @@ class StimController:
         self.codebooks = []
         codebook = self.load_codebook(filepath)
         for _ in range(self.n_objs):
-            self.codebooks.append(codebook)
-        print(f'Codebooks loaded. shape: {np.array(self.codebooks).shape}')
+            self.codebooks.append(codebook.tolist())
+        logging.info(f'Codebooks loaded. shape: {np.array(self.codebooks).shape}')
             
     def load_codebooks_block_2(self, path: str='./codebooks/condition_2'):
         """Block 2 aka custom codebook"""
@@ -93,33 +101,33 @@ class StimController:
         for fpath in fpaths:
             codebook = self.load_codebook(fpath).tolist()
             self.codebooks.append(codebook)
-        print(f'Codebooks loaded. shape: {np.array(self.codebooks).shape}')
+        logging.info(f'Codebooks loaded. shape: {np.array(self.codebooks).shape}')
             
     def post_sequence(self, sequence: list):
         """Post a single sequence to the API"""
         try:
             _ = requests.post(self.url, json={'values': sequence})
         except Exception as e:
-            print(f"Error posting sequence: {e}")
+            logging.warning(f"Error posting sequence: {e}")
     
         
     def run_sequence(self, sequence: list):
         """Run a single sequence"""
         # Turn on the Lasers
-        end_time = datetime.datetime.now() + datetime.timedelta(milliseconds=100)
+        end_time = datetime.datetime.now() + datetime.timedelta(seconds=self.sequence_on_duration)
         self.send_led_values(sequence)
         self.post_sequence(sequence)
-        self.outlet.push_sample(['on'])
+        self.lsl_outlet.push_sample(['on'])
         # Wait until turn on duration is over
         while datetime.datetime.now() < end_time:
             pass
         
         # Turn off the lasers
         start_time = datetime.datetime.now()
-        end_time = start_time + datetime.timedelta(milliseconds=150)
+        end_time = start_time + datetime.timedelta(seconds=self.sequence_off_duration)
         self.send_led_values([0] * 8)
         self.post_sequence([0] * 8)
-        self.outlet.push_sample(['off'])
+        self.lsl_outlet.push_sample(['off'])
         # Wait until turn off duration is over
         while datetime.datetime.now() < end_time:
             pass
@@ -130,7 +138,7 @@ class StimController:
             self.run_sequence(sequence)
             sequence_end_time = datetime.datetime.now()
             dt = sequence_end_time - sequence_start_time
-            print(f'Sequence duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
+            logging.info(f'Sequence duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
             
     def run_run(self):
         kw = input('Start run? y/n\n')
@@ -145,20 +153,26 @@ class StimController:
                 
                 trial_end_time = datetime.datetime.now()
                 dt = trial_end_time - trial_start_time
-                print(f'Trial duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
-            self.outlet.push_sample(['off'])
+                logging.info(f'Trial duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
+            self.lsl_outlet.push_sample(['off'])
             self.send_led_values([0] * 8)
             self.post_sequence([0] * 8)
             
             run_end_time = datetime.datetime.now()
             dt = run_end_time - run_start_time
             # Print run duration in mins, seconds and milliseconds
-            print(f'Run duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
+            logging.info(f'Run duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        filename='log.log', 
+        filemode='w',
+        level=logging.INFO, 
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
     port = 'COM5'  # Change as needed
     controller = StimController(port)
-    # controller.load_codebooks_block_1()
-    controller.load_codebooks_block_2()
+    controller.load_codebooks_block_1()
+    # controller.load_codebooks_block_2()
     
     controller.run_run()
