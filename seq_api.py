@@ -23,7 +23,3 @@ def update_sequence(input_data: SequenceInput):
 @app.get("/get_sequence")
 def get_sequence():
     return {"sequence": sequence}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)

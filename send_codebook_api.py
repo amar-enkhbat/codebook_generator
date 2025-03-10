@@ -1,91 +1,152 @@
 import os
+import glob
+import datetime
 import psutil
 import serial
 import time
 import numpy as np
+import requests
+import pycurl
+import json
 from pylsl import StreamInfo, StreamOutlet
 from dareplane_utils.general.time import sleep_s
-import requests
 
 
-url = "http://127.0.0.1:8000/update_sequence"  # Adjust if running on a different host/port
-
-# Adjust to your Arduino's port (check Device Manager on Windows or `ls /dev/tty*` on Linux/Mac)
-PORT = '/dev/tty.usbmodem156466901'  # Change to the correct port (MAC)
-PORT = 'COM5'  # Change to the correct port (Windows)
-
-
-BAUD_RATE = 115200
-# arduino = serial.Serial(PORT, BAUD_RATE, timeout=1)
-time.sleep(2)  # Wait for Arduino to initialize
-
-def optimize_timer_resolution_unix():
-    """Optimize the timer resolution to improve precision."""
-    import ctypes
-    try:
-        print("Optimizing timer resolution...")
-        ctypes.windll.winmm.timeBeginPeriod(1)  # Set the timer resolution to 1ms
-        print("Timer resolution set to 1ms.")
-    except Exception as e:
-        print(f"Error optimizing timer resolution: {e}")
-
-    p = psutil.Process(os.getpid())
-    # High priority, suitable for time-critical processes.
-    p.nice(10)
-    print("Priority set to 10. Running script...")
-
-
-
-
-def send_led_values(values):
-    if len(values) != 8:
-        print("Error: Must send exactly 8 values")
-        return
-
-    data_str = ",".join(map(str, values)) + "\n"
-    # arduino.write(data_str.encode())  # Send data
-
-def main():
-    # Init params
-    brightness = 255
+class StimController:
+    def __init__(self, port, baud_rate=115200, url="http://127.0.0.1:8000/update_sequence"):
+        self.port = port
+        self.baud_rate = baud_rate
+        self.url = url
+        
+        self.optimize_timer_resolution()
+        
+        self.trial_duration = 12
+        self.trial_rest_duration = 3
+        self.n_trials = 8
+        
+        self.run_duration = self.trial_duration * self.n_trials + self.trial_rest_duration * (self.n_trials - 1)
+        self.run_rest_duration = 30
+        self.n_runs = 3
+        
+        self.arduino = None
+        self.outlet = None
+        self.init_lsl_stream()
+        self.connect_teensy()
+        
+        self.codebooks = []
+        self.n_objs = 8
+        
+        # Check if API is running
+        try:
+            requests.get(self.url)
+        except Exception:
+            print("API not running. Not pushing data to GUI.")
     
-    # Init LSL stream
-    info = StreamInfo(name='LaserMarkerStream', type='Markers', channel_count=1, nominal_srate = 0, channel_format='string', source_id='CharacterEvent')
-    outlet = StreamOutlet(info)
+    def connect_teensy(self):
+        try:
+            self.arduino = serial.Serial(self.port, self.baud_rate, timeout=1)
+            time.sleep(2)  # Wait for Arduino to initialize
+        except Exception as e:
+            print(f"Teensy not connected: {e}")
     
-    codebooks = np.load('./codebooks/condition_1/codebook_1_henrich.npy').T # Codebook 1
-    codebooks = np.load('./codebooks/condition_2/codebook_obj_2.npy').T # Codebook 2
-    # codebooks = np.ones((1, 8)) # Dummy
+    def init_lsl_stream(self):
+        info = StreamInfo(name='LaserMarkerStream', type='Markers', channel_count=1, nominal_srate=0, channel_format='string', source_id='CharacterEvent')
+        self.outlet = StreamOutlet(info)
     
-    # Codebook 3
-    # codebooks = np.load('./codebooks/codebook_3_mseq_61_shift.npy')
-    # codebooks = codebooks[:8].T
+    def optimize_timer_resolution(self):
+        """Optimize the timer resolution to improve precision."""
+        import ctypes
+        try:
+            print("Optimizing timer resolution...")
+            ctypes.windll.winmm.timeBeginPeriod(1)
+            print("Timer resolution set to 1ms.")
+        except Exception as e:
+            print(f"Error optimizing timer resolution: {e}")
+        
+        p = psutil.Process(os.getpid())
+        p.nice(psutil.HIGH_PRIORITY_CLASS if os.name == 'nt' else 10)
+        print("Priority set. Running script...")
     
-    try:
-        while True:
-            for codebook in codebooks:
-                if len(codebook) == 8 and all(0 <= v <= 255 for v in codebook):
-                    send_led_values(codebook * brightness)  # Turn LEDs on
-                    print(codebook)
-                    data = {"values": codebook.tolist()}  # Example sequence
-                    response = requests.post(url, json=data)
-                    
-                    outlet.push_sample(['on'])
-                    sleep_s(0.1)  # Keep LEDs on for 100ms
+    def send_led_values(self, values):
+        if self.arduino is not None:
+            data_str = ",".join(map(str, values)) + "\n"
+            self.arduino.write(data_str.encode())  # Send data
+    
+    def load_codebook(self, filepath):
+        codebook = np.load(filepath).T
+        assert codebook.shape[1] == self.n_objs, f'Codebook shape should be (n_sequences, {self.n_objs}). Current shape: {codebook.shape}'
+        return codebook
 
-                    send_led_values([0] * 8)  # Turn LEDs off
-                    outlet.push_sample(['off'])
-                    sleep_s(0.15)  # Keep LEDs off for 150ms
-                else:
-                    print("Invalid input! Please enter exactly 8 numbers between 0 and 255.")
+    def load_codebooks_block_1(self, filepath: str='./codebooks/condition_1/codebook_1_henrich.npy'):
+        """Block 1 aka Henrich's codebook"""
+        self.codebooks = []
+        codebook = self.load_codebook(filepath)
+        for _ in range(self.n_objs):
+            self.codebooks.append(codebook)
+        print(f'Codebooks loaded. shape: {np.array(self.codebooks).shape}')
+            
+    def load_codebooks_block_2(self, path: str='./codebooks/condition_2'):
+        """Block 2 aka custom codebook"""
+        self.codebooks = []
+        
+        fpaths = sorted(glob.glob(f'{path}/codebook_obj_*.npy'))
+        assert len(fpaths) == self.n_objs, f'there should be {self.n_objs} codebooks for block 2. Current codebooks: {len(fpaths)}'
+        
+        for fpath in fpaths:
+            codebook = self.load_codebook(fpath).tolist()
+            self.codebooks.append(codebook)
+        print(f'Codebooks loaded. shape: {np.array(self.codebooks).shape}')
+            
+    def post_sequence(self, sequence: list):
+        """Post a single sequence to the API"""
+        try:
+            _ = requests.post(self.url, json={'sequence': sequence})
+        except Exception as e:
+            print(f"Error posting sequence: {e}")
+        
+    def run_sequence(self, sequence: list):
+        """Run a single sequence"""
+        self.send_led_values(sequence)
+        self.post_sequence(sequence)
+        self.outlet.push_sample(['on'])
+        sleep_s(0.1)
+        
+        self.send_led_values([0] * 8)
+        self.post_sequence([0] * 8)
+        self.outlet.push_sample(['off'])
+        sleep_s(0.15)
+    
+    def run_trial(self, codebook: list):        
+        for sequence in codebook:
+            self.run_sequence(sequence)
+            
+    def run_run(self):
+        kw = input('Start run? y/n\n')
+        if kw == 'y':
+            run_start_time = datetime.datetime.now()
+            
+            for codebook in self.codebooks:
+                trial_start_time = datetime.datetime.now()
+                
+                self.run_trial(codebook)
+                sleep_s(3) # Rest time between trials
+                
+                trial_end_time = datetime.datetime.now()
+                dt = trial_end_time - trial_start_time
+                print(f'Trial duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
+            self.outlet.push_sample(['off'])
+            self.send_led_values([0] * 8)
+            self.post_sequence([0] * 8)
+            
+            run_end_time = datetime.datetime.now()
+            dt = run_end_time - run_start_time
+            # Print run duration in mins, seconds and milliseconds
+            print(f'Run duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
 
-    except KeyboardInterrupt:
-        print("Exiting...")
-        send_led_values([0] * 8)  # Turn LEDs off
-        # arduino.close()
+if __name__ == "__main__":
+    port = 'COM5'  # Change as needed
+    controller = StimController(port)
+    # controller.load_codebooks_block_1()
+    controller.load_codebooks_block_2()
     
-    
-if __name__ == '__main__':
-    # optimize_timer_resolution_unix()
-    # optimize_timer_resolution_windows()
-    main()
+    controller.run_run()
