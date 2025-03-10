@@ -6,8 +6,6 @@ import serial
 import time
 import numpy as np
 import requests
-import pycurl
-import json
 from pylsl import StreamInfo, StreamOutlet
 from dareplane_utils.general.time import sleep_s
 
@@ -100,25 +98,39 @@ class StimController:
     def post_sequence(self, sequence: list):
         """Post a single sequence to the API"""
         try:
-            _ = requests.post(self.url, json={'sequence': sequence})
+            _ = requests.post(self.url, json={'values': sequence})
         except Exception as e:
             print(f"Error posting sequence: {e}")
+    
         
     def run_sequence(self, sequence: list):
         """Run a single sequence"""
+        # Turn on the Lasers
+        end_time = datetime.datetime.now() + datetime.timedelta(milliseconds=100)
         self.send_led_values(sequence)
         self.post_sequence(sequence)
         self.outlet.push_sample(['on'])
-        sleep_s(0.1)
+        # Wait until turn on duration is over
+        while datetime.datetime.now() < end_time:
+            pass
         
+        # Turn off the lasers
+        start_time = datetime.datetime.now()
+        end_time = start_time + datetime.timedelta(milliseconds=150)
         self.send_led_values([0] * 8)
         self.post_sequence([0] * 8)
         self.outlet.push_sample(['off'])
-        sleep_s(0.15)
+        # Wait until turn off duration is over
+        while datetime.datetime.now() < end_time:
+            pass
     
     def run_trial(self, codebook: list):        
         for sequence in codebook:
+            sequence_start_time = datetime.datetime.now()
             self.run_sequence(sequence)
+            sequence_end_time = datetime.datetime.now()
+            dt = sequence_end_time - sequence_start_time
+            print(f'Sequence duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
             
     def run_run(self):
         kw = input('Start run? y/n\n')
