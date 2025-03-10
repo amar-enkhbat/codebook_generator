@@ -1,11 +1,9 @@
 from datetime import datetime
-import numpy as np
 import pyglet
 from pyglet import shapes
 from pyglet.window import key
 import requests
 
-from dareplane_utils.general.time import sleep_s
 
 class StimuliVisualization(pyglet.window.Window):
     def __init__(self, width=1920, height=1080, interval=120, fullscreen=False, vsync=False):
@@ -55,6 +53,7 @@ class StimuliVisualization(pyglet.window.Window):
         
         # Add description text on screen
         self.description = pyglet.text.Label('Press ENTER to start', font_size=60, x=width//2, y=height//8, anchor_x='center', anchor_y='center', color=(0, 0, 0, 255), batch=self.batch)
+        self.description_url = 'http://127.0.0.1:8000/get_description'
         
         # Load sequences
         self.ctx = dict(
@@ -88,24 +87,39 @@ class StimuliVisualization(pyglet.window.Window):
         except requests.exceptions.RequestException as e:
             # print(f"Error fetching sequence: {e}")
             return
+    
+    def fetch_description(self):
+        """Fetch the description from the API."""
+        try:
+            response = requests.get(self.description_url)
+            # if response is invalid or empty, do nothing
+            if response.status_code == 200 and response.json():
+                self.description.text = response.json()['description']
+        except requests.exceptions.RequestException as e:
+            # print(f"Error fetching description: {e}")
+            return
+        
             
     def update(self, dt):
         """Update the window every dt seconds."""
         if not self.ctx['pause']:
-            self.hide_text()
-            
+            # self.hide_text()
             start_time = datetime.now()
+            
             # Fetch sequence
             self.fetch_sequence()
             # Turn on lasers
             self.lasers_on()
+            # Fetch description
+            self.fetch_description()
             
-            end_time = datetime.now()
             # Print update time in milliseconds
+            end_time = datetime.now()
             print(f'Update time: {(end_time - start_time).microseconds / 1000} ms')
         else:
             # Display text
             self.lasers_off()
+            self.description.text = 'Press ENTER to start'
     
     def on_draw(self):
         demo.clear()

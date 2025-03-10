@@ -12,10 +12,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 class StimController:
-    def __init__(self, port, baud_rate=115200, url="http://127.0.0.1:8000/update_sequence"):
+    def __init__(self, port: str):
         self.port = port
-        self.baud_rate = baud_rate
-        self.url = url
+        self.baud_rate = 115200
+        self.url = "http://127.0.0.1:8000/update_sequence"
+        self.description_url = "http://127.0.0.1:8000/update_description"
         
         self.optimize_timer_resolution()
         
@@ -47,6 +48,10 @@ class StimController:
         self.run_duration = self.trial_duration * self.n_trials + self.trial_rest_duration * (self.n_trials - 1)
         self.run_rest_duration = 30
         self.n_runs = 3
+        
+        self.trial_num = 1
+        self.run_num = 1
+        self.block_num = 1
     
     def connect_teensy(self):
         try:
@@ -73,7 +78,7 @@ class StimController:
         p.nice(psutil.HIGH_PRIORITY_CLASS if os.name == 'nt' else 10)
         logging.info("Priority set. Running script...")
     
-    def send_led_values(self, values):
+    def send_laser_values(self, values):
         if self.teensy is not None:
             data_str = ",".join(map(str, values)) + "\n"
             self.teensy.write(data_str.encode())  # Send data
@@ -109,13 +114,19 @@ class StimController:
             _ = requests.post(self.url, json={'values': sequence})
         except Exception as e:
             logging.warning(f"Error posting sequence: {e}")
-    
-        
+            
+    def post_description(self, description: str):
+        """Post a description to the API"""
+        try:
+            _ = requests.post(self.description_url, json={'value': description})
+        except Exception as e:
+            logging.warning(f"Error posting sequence: {e}")
+
     def run_sequence(self, sequence: list):
         """Run a single sequence"""
         # Turn on the Lasers
         end_time = datetime.datetime.now() + datetime.timedelta(seconds=self.sequence_on_duration)
-        self.send_led_values(sequence)
+        self.send_laser_values(sequence)
         self.post_sequence(sequence)
         self.lsl_outlet.push_sample(['on'])
         # Wait until turn on duration is over
@@ -125,7 +136,7 @@ class StimController:
         # Turn off the lasers
         start_time = datetime.datetime.now()
         end_time = start_time + datetime.timedelta(seconds=self.sequence_off_duration)
-        self.send_led_values([0] * 8)
+        self.send_laser_values([0] * 8)
         self.post_sequence([0] * 8)
         self.lsl_outlet.push_sample(['off'])
         # Wait until turn off duration is over
@@ -141,27 +152,49 @@ class StimController:
             logging.info(f'Sequence duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
             
     def run_run(self):
-        kw = input('Start run? y/n\n')
-        if kw == 'y':
-            run_start_time = datetime.datetime.now()
+        # Send a countdown of 5 seconds
+        for i in range(5):
+            self.post_description(f'Run start in: {5 - i}')
+            sleep_s(1)
+        
+        run_start_time = datetime.datetime.now()
+        
+        for i, codebook in enumerate(self.codebooks):
+            trial_start_time = datetime.datetime.now()
             
-            for codebook in self.codebooks:
-                trial_start_time = datetime.datetime.now()
-                
-                self.run_trial(codebook)
-                sleep_s(3) # Rest time between trials
-                
-                trial_end_time = datetime.datetime.now()
-                dt = trial_end_time - trial_start_time
-                logging.info(f'Trial duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
-            self.lsl_outlet.push_sample(['off'])
-            self.send_led_values([0] * 8)
-            self.post_sequence([0] * 8)
+            self.post_description(f'Block: {self.block_num}\nRun: {self.run_num}\nTrial: {self.trial_num}')
+            self.run_trial(codebook)
+            self.trial_num = self.trial_num + 1
             
-            run_end_time = datetime.datetime.now()
-            dt = run_end_time - run_start_time
-            # Print run duration in mins, seconds and milliseconds
-            logging.info(f'Run duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
+            self.post_description('Rest')
+            sleep_s(3) # Rest time between trials
+            
+            trial_end_time = datetime.datetime.now()
+            dt = trial_end_time - trial_start_time
+            logging.info(f'Trial duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
+        
+        # Reset lasers
+        self.trial_num = 1
+        self.send_laser_values([0] * 8)
+        self.post_sequence([0] * 8)
+        
+        run_end_time = datetime.datetime.now()
+        dt = run_end_time - run_start_time
+        # Print run duration in mins, seconds and milliseconds
+        logging.info(f'Run duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
+        
+    def run_block(self):
+        block_start_time = datetime.datetime.now()
+        for _ in range(self.n_runs):
+            self.run_run()
+            self.run_num = self.run_num + 1
+            sleep_s(30) # rest time between runs
+            
+                
+        block_end_time = datetime.datetime.now()
+        dt = block_end_time - block_start_time
+        # Print run duration in mins, seconds and milliseconds
+        logging.info(f'Block duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -172,7 +205,14 @@ if __name__ == "__main__":
     )
     port = 'COM5'  # Change as needed
     controller = StimController(port)
-    controller.load_codebooks_block_1()
-    # controller.load_codebooks_block_2()
     
-    controller.run_run()
+    
+    
+    kw = input('Start run? y/n\n')
+    if kw == 'y':
+        controller.load_codebooks_block_1()
+        controller.run_block()
+        
+        controller.load_codebooks_block_2()
+        
+    controller.post_description('Experiment over.')
