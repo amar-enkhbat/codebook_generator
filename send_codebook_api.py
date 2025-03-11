@@ -188,10 +188,10 @@ class StimController:
     def run_block(self):
         self.lsl_outlet.push_sample(['Block start'])
         for _ in range(self.n_runs):
-            # for i in range(30):
-            #     self.post_description(f'Rest. Run start in: {30 - i}')
-            #     self.lsl_outlet.push_sample(['Run Rest'])
-            #     sleep_s(1)
+            for i in range(30):
+                self.post_description(f'Rest. Run start in: {30 - i}')
+                self.lsl_outlet.push_sample(['Run Rest'])
+                sleep_s(1)
                 
             run_start_time = datetime.datetime.now()
             self.run_run()

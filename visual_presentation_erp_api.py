@@ -136,7 +136,7 @@ class StimuliVisualization(pyglet.window.Window):
         
 
 if __name__ == "__main__":
-    FPS = 240 # fps shoud be double the 
+    FPS = 480 # fps shoud be double the 
     interval = 1 / FPS
     
     width, height = 1920, 1080
