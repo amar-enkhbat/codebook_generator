@@ -49,6 +49,7 @@ class StimController:
         self.run_rest_duration = 30
         self.n_runs = 3
         
+        # Exeriment vars
         self.trial_num = 1
         self.run_num = 1
         self.block_num = 1
@@ -107,6 +108,18 @@ class StimController:
             codebook = self.load_codebook(fpath).tolist()
             self.codebooks.append(codebook)
         logging.info(f'Codebooks loaded. shape: {np.array(self.codebooks).shape}')
+        
+    def load_codebooks_block_3(self, fpath: str='./codebooks/condition_3/mseq_61_shift_8.npy'):
+        """Block 2 aka custom cVEP"""
+        self.codebooks = []
+        
+        codebook = self.load_codebook(fpath)
+        # Select 8 codebooks
+        codebook = np.vstack([codebook] * self.trial_duration)
+        self.codebooks = np.array([codebook] * 8)
+        self.codebooks = self.codebooks.tolist()
+        
+        logging.info(f'Codebooks loaded. shape: {np.array(self.codebooks).shape}')
             
     def post_sequence(self, sequence: list):
         """Post a single sequence to the API"""
@@ -133,14 +146,15 @@ class StimController:
         while datetime.datetime.now() < end_time:
             pass
         # Turn off the lasers
-        end_time = datetime.datetime.now() + datetime.timedelta(seconds=self.sequence_off_duration)
-        self.send_laser_values([0] * 8)
-        self.lsl_outlet.push_sample(['off'])
-        self.post_sequence([0] * 8)
-        # Wait until turn off duration is over
-        while datetime.datetime.now() < end_time:
-            pass
-    
+        if self.sequence_off_duration != 0:
+            end_time = datetime.datetime.now() + datetime.timedelta(seconds=self.sequence_off_duration)
+            self.send_laser_values([0] * 8)
+            self.lsl_outlet.push_sample(['off'])
+            self.post_sequence([0] * 8)
+            # Wait until turn off duration is over
+            while datetime.datetime.now() < end_time:
+                pass
+        
     def run_trial(self, codebook: list):
         self.post_description(f'Block:{self.block_num} Run:{self.run_num} Trial:{self.trial_num}')
         self.lsl_outlet.push_sample(['Trial start'])
@@ -151,7 +165,6 @@ class StimController:
             logging.info(f'Sequence duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
         self.lsl_outlet.push_sample(['Trial end'])
         self.trial_num = self.trial_num + 1
-        
             
     def run_run(self):
         self.lsl_outlet.push_sample(['Run start'])
@@ -163,6 +176,9 @@ class StimController:
             # Rest for trial_rest_duration seconds
             rest_end_time = datetime.datetime.now() + datetime.timedelta(seconds=self.trial_rest_duration)
             self.post_description('Rest')
+            self.send_laser_values([0] * 8)
+            self.lsl_outlet.push_sample(['Trial Rest'])
+            self.post_sequence([0] * 8)
             while datetime.datetime.now() < rest_end_time:
                 pass
         self.lsl_outlet.push_sample(['Run end'])
@@ -174,6 +190,7 @@ class StimController:
         for _ in range(self.n_runs):
             for i in range(30):
                 self.post_description(f'Rest. Run start in: {30 - i}')
+                self.lsl_outlet.push_sample(['Run Rest'])
                 sleep_s(1)
                 
             run_start_time = datetime.datetime.now()
@@ -183,6 +200,7 @@ class StimController:
         self.lsl_outlet.push_sample(['Block end'])
         self.run_num = 1
         self.block_num = self.block_num + 1
+    
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -205,10 +223,18 @@ if __name__ == "__main__":
     
     kw = input('Start run? y/n\n')
     if kw == 'y':
-        # controller.load_codebooks_block_1()
-        # controller.run_block()
+        # Start ERP condition 1
+        controller.load_codebooks_block_1()
+        controller.run_block()
         
+        # Start ERP condition 2
         controller.load_codebooks_block_2()
+        controller.run_block()
+        
+        # Start cVEP
+        controller.load_codebooks_block_3()
+        controller.sequence_on_duration = 1/63
+        controller.sequence_off_duration = 0
         controller.run_block()
         
         controller.post_description('Experiment over.')
