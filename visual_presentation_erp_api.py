@@ -115,7 +115,7 @@ class StimuliVisualization(pyglet.window.Window):
             
             # Print update time in milliseconds
             end_time = datetime.now()
-            print(f'Update time: {(end_time - start_time).microseconds / 1000} ms')
+            # print(f'Update time: {(end_time - start_time).microseconds / 1000} ms')
         else:
             # Display text
             self.lasers_off()

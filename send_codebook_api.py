@@ -6,7 +6,7 @@ import serial
 import time
 import numpy as np
 import requests
-from pylsl import StreamInfo, StreamOutlet
+from pylsl import StreamInfo, StreamOutlet, resolve_streams
 from dareplane_utils.general.time import sleep_s
 import logging
 logger = logging.getLogger(__name__)
@@ -127,74 +127,62 @@ class StimController:
         # Turn on the Lasers
         end_time = datetime.datetime.now() + datetime.timedelta(seconds=self.sequence_on_duration)
         self.send_laser_values(sequence)
+        self.lsl_outlet.push_sample([str(sequence)])
         self.post_sequence(sequence)
-        self.lsl_outlet.push_sample(['on'])
         # Wait until turn on duration is over
         while datetime.datetime.now() < end_time:
             pass
-        
         # Turn off the lasers
-        start_time = datetime.datetime.now()
-        end_time = start_time + datetime.timedelta(seconds=self.sequence_off_duration)
+        end_time = datetime.datetime.now() + datetime.timedelta(seconds=self.sequence_off_duration)
         self.send_laser_values([0] * 8)
-        self.post_sequence([0] * 8)
         self.lsl_outlet.push_sample(['off'])
+        self.post_sequence([0] * 8)
         # Wait until turn off duration is over
         while datetime.datetime.now() < end_time:
             pass
     
-    def run_trial(self, codebook: list):        
+    def run_trial(self, codebook: list):
+        self.post_description(f'Block:{self.block_num} Run:{self.run_num} Trial:{self.trial_num}')
+        self.lsl_outlet.push_sample(['Trial start'])
         for sequence in codebook:
             sequence_start_time = datetime.datetime.now()
             self.run_sequence(sequence)
-            sequence_end_time = datetime.datetime.now()
-            dt = sequence_end_time - sequence_start_time
+            dt = datetime.datetime.now() - sequence_start_time
             logging.info(f'Sequence duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
+        self.lsl_outlet.push_sample(['Trial end'])
+        self.trial_num = self.trial_num + 1
+        
             
     def run_run(self):
-        # Send a countdown of 5 seconds
-        for i in range(5):
-            self.post_description(f'Run start in: {5 - i}')
-            sleep_s(1)
-        
-        run_start_time = datetime.datetime.now()
-        
-        for i, codebook in enumerate(self.codebooks):
+        self.lsl_outlet.push_sample(['Run start'])
+        for codebook in self.codebooks:
             trial_start_time = datetime.datetime.now()
-            
-            self.post_description(f'Block: {self.block_num}\nRun: {self.run_num}\nTrial: {self.trial_num}')
             self.run_trial(codebook)
-            self.trial_num = self.trial_num + 1
-            
-            self.post_description('Rest')
-            sleep_s(3) # Rest time between trials
-            
-            trial_end_time = datetime.datetime.now()
-            dt = trial_end_time - trial_start_time
+            dt = datetime.datetime.now() - trial_start_time
             logging.info(f'Trial duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
-        
-        # Reset lasers
+            # Rest for trial_rest_duration seconds
+            rest_end_time = datetime.datetime.now() + datetime.timedelta(seconds=self.trial_rest_duration)
+            self.post_description('Rest')
+            while datetime.datetime.now() < rest_end_time:
+                pass
+        self.lsl_outlet.push_sample(['Run end'])
         self.trial_num = 1
-        self.send_laser_values([0] * 8)
-        self.post_sequence([0] * 8)
-        
-        run_end_time = datetime.datetime.now()
-        dt = run_end_time - run_start_time
-        # Print run duration in mins, seconds and milliseconds
-        logging.info(f'Run duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
-        
-    def run_block(self):
-        block_start_time = datetime.datetime.now()
-        for _ in range(self.n_runs):
-            self.run_run()
-            self.run_num = self.run_num + 1
-            sleep_s(30) # rest time between runs
-            
+        self.run_num = self.run_num + 1
                 
-        block_end_time = datetime.datetime.now()
-        dt = block_end_time - block_start_time
-        # Print run duration in mins, seconds and milliseconds
-        logging.info(f'Block duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
+    def run_block(self):
+        self.lsl_outlet.push_sample(['Block start'])
+        for _ in range(self.n_runs):
+            for i in range(30):
+                self.post_description(f'Rest. Run start in: {30 - i}')
+                sleep_s(1)
+                
+            run_start_time = datetime.datetime.now()
+            self.run_run()
+            dt = datetime.datetime.now() - run_start_time
+            logging.info(f'Run duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
+        self.lsl_outlet.push_sample(['Block end'])
+        self.run_num = 1
+        self.block_num = self.block_num + 1
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -206,13 +194,21 @@ if __name__ == "__main__":
     port = 'COM5'  # Change as needed
     controller = StimController(port)
     
-    
+    # Start recording lsl streams
+    # Get list of stream from LSL using pylsl
+    streams = resolve_streams(wait_time=1.0)
+    print('List of streams:')
+    for stream in streams:
+        print(f'Name: {stream.name()}, Type: {stream.type()}')
+        
+
     
     kw = input('Start run? y/n\n')
     if kw == 'y':
-        controller.load_codebooks_block_1()
-        controller.run_block()
+        # controller.load_codebooks_block_1()
+        # controller.run_block()
         
         controller.load_codebooks_block_2()
+        controller.run_block()
         
-    controller.post_description('Experiment over.')
+        controller.post_description('Experiment over.')
