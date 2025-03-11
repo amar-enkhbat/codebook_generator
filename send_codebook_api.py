@@ -176,8 +176,8 @@ class StimController:
             # Rest for trial_rest_duration seconds
             rest_end_time = datetime.datetime.now() + datetime.timedelta(seconds=self.trial_rest_duration)
             self.post_description('Rest')
-            self.send_laser_values([0] * 8)
             self.lsl_outlet.push_sample(['Trial Rest'])
+            self.send_laser_values([0] * 8)
             self.post_sequence([0] * 8)
             while datetime.datetime.now() < rest_end_time:
                 pass
@@ -188,10 +188,10 @@ class StimController:
     def run_block(self):
         self.lsl_outlet.push_sample(['Block start'])
         for _ in range(self.n_runs):
-            for i in range(30):
-                self.post_description(f'Rest. Run start in: {30 - i}')
-                self.lsl_outlet.push_sample(['Run Rest'])
-                sleep_s(1)
+            # for i in range(30):
+            #     self.post_description(f'Rest. Run start in: {30 - i}')
+            #     self.lsl_outlet.push_sample(['Run Rest'])
+            #     sleep_s(1)
                 
             run_start_time = datetime.datetime.now()
             self.run_run()

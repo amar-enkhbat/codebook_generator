@@ -14,7 +14,7 @@ class StimuliVisualization(pyglet.window.Window):
             display = pyglet.display.get_display()
             screen = display.get_default_screen()
             fs_width, fs_height = screen.width, screen.height
-            width, height = fs_width * 2, fs_height * 2
+            width, height = fs_width, fs_height
         else:
             pyglet.options.dpi_scaling = 'real'
         # Init window
@@ -39,10 +39,10 @@ class StimuliVisualization(pyglet.window.Window):
         # Circle properties
         self.circles = []
         if fullscreen:
-            self.circle_spacing = 160
+            self.circle_spacing = width // 9 // 2
         else:
             self.circle_spacing = 80
-        self.circle_radius = 75
+        self.circle_radius = 50
         self.circle_init_coors = (width // 2 // 4, height // 2)
         self.circle_background_color = (0, 255, 0, 255) # "RG" elicited the strongest response
         self.circle_highlight_color = (255, 0, 0, 255) # # "RG" elicited the strongest response
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     interval = 1 / FPS
     
     width, height = 1920, 1080
-    demo = StimuliVisualization(width, height, interval, fullscreen=False, vsync=False)
+    demo = StimuliVisualization(width, height, interval, fullscreen=True, vsync=False)
     pyglet.clock.schedule_interval(demo.update, interval=interval) # NOTE: MD: Schedule is fast enough. Using the standard system clock. -/+5~15ms due to clock.
     # fps_display.draw()
     pyglet.app.run(interval=interval)
