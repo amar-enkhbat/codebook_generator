@@ -136,11 +136,11 @@ class StimuliVisualization(pyglet.window.Window):
         
 
 if __name__ == "__main__":
-    FPS = 480 # fps shoud be double the 
+    FPS = 120 # fps shoud be double the 
     interval = 1 / FPS
     
     width, height = 1920, 1080
-    demo = StimuliVisualization(width, height, interval, fullscreen=True, vsync=False)
+    demo = StimuliVisualization(width, height, interval, fullscreen=True, vsync=True)
     pyglet.clock.schedule_interval(demo.update, interval=interval) # NOTE: MD: Schedule is fast enough. Using the standard system clock. -/+5~15ms due to clock.
     # fps_display.draw()
     pyglet.app.run(interval=interval)
