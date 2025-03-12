@@ -21,7 +21,11 @@ void loop() {
 
         if (index == 8) {  // Ensure all 8 values are received
             for (int i = 0; i < 8; i++) {
-                analogWrite(ledPins[i], values[i]);  // Update LED brightness
+                if (values[i] > 0) {  // If the value is greater than 127, turn LED on
+                    digitalWrite(ledPins[i], HIGH);  // LED ON
+                } else {  // Otherwise, turn LED off
+                    digitalWrite(ledPins[i], LOW);  // LED OFF
+                }
             }
         }
     }
@@ -29,6 +33,7 @@ void loop() {
 
 // void loop() {
 //     for (int i = 0; i < 8; i++) {
-//         analogWrite(ledPins[i], 255);  // Update LED brightness
+//         // analogWrite(ledPins[i], 255);  // Update LED brightness
+//         digitalWrite(ledPins[i], HIGH);  // Update LED brightness
 //     }
 // }
