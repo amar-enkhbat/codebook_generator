@@ -2,3 +2,5 @@
 .vscode/
 __pycache__/
 log.log
+test*.ipynb
+test*.py
