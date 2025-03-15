@@ -1,7 +1,7 @@
 const int ledPins[] = {0, 1, 2, 3, 4, 5, 6, 7};  // LED pins
 
 void setup() {
-    Serial.begin(9600);  // Start serial communication
+    Serial.begin(115200);  // Start serial communication
     for (int i = 0; i < 8; i++) {
         pinMode(ledPins[i], OUTPUT);
     }
