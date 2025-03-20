@@ -7,7 +7,6 @@ import time
 import numpy as np
 import requests
 from pylsl import StreamInfo, StreamOutlet, resolve_streams
-from dareplane_utils.general.time import sleep_s
 import logging
 logger = logging.getLogger(__name__)
 
@@ -15,8 +14,6 @@ class StimController:
     def __init__(self, port: str):
         self.port = port
         self.baud_rate = 115200
-        self.url = "http://127.0.0.1:8000/update_sequence"
-        self.description_url = "http://127.0.0.1:8000/update_description"
         
         self.optimize_timer_resolution()
         
@@ -27,9 +24,13 @@ class StimController:
         self.teensy = None
         self.connect_teensy()
         
-        # Start LSL stream
-        self.lsl_outlet = None
-        self.init_lsl_stream()
+        # Start marker stream
+        self.marker_outlet = None
+        self.init_marker_lsl_stream()
+        
+        # Start description stream
+        self.desc_outlet = None
+        self.init_desc_lsl_stream()
         
         # Check if API is running
         try:
@@ -61,9 +62,13 @@ class StimController:
         except Exception as e:
             logging.warning(f"Teensy not connected: {e}")
     
-    def init_lsl_stream(self):
+    def init_marker_lsl_stream(self):
         info = StreamInfo(name='LaserMarkerStream', type='Markers', channel_count=1, nominal_srate=0, channel_format='string', source_id='CharacterEvent')
-        self.lsl_outlet = StreamOutlet(info)
+        self.marker_outlet = StreamOutlet(info)
+        
+    def init_desc_lsl_stream(self):
+        info = StreamInfo(name='DescriptionStream', type='Markers', channel_count=1, nominal_srate=0, channel_format='string', source_id='CharacterEvent')
+        self.desc_outlet = StreamOutlet(info)
     
     def optimize_timer_resolution(self):
         """Optimize the timer resolution to improve precision."""
@@ -122,25 +127,25 @@ class StimController:
         logging.info(f'Codebooks loaded. shape: {np.array(self.codebooks).shape}')
             
     def post_sequence(self, sequence: list):
-        """Post a single sequence to the API"""
+        """send sequence to lsl stream"""
         try:
-            _ = requests.post(self.url, json={'values': sequence})
+            self.marker_outlet.push_sample([str(sequence)])
         except Exception as e:
             logging.warning(f"Error posting sequence: {e}")
             
     def post_description(self, description: str):
-        """Post a description to the API"""
+        """send description to lsl stream"""
         try:
-            _ = requests.post(self.description_url, json={'value': description})
+            self.desc_outlet.push_sample([description])
         except Exception as e:
-            logging.warning(f"Error posting sequence: {e}")
+            logging.warning(f"Error posting description: {e}")
 
     def run_sequence(self, sequence: list):
         """Run a single sequence"""
         # Turn on the Lasers
         end_time = datetime.datetime.now() + datetime.timedelta(seconds=self.sequence_on_duration)
         self.send_laser_values(sequence)
-        self.lsl_outlet.push_sample([str(sequence)])
+        self.marker_outlet.push_sample([str(sequence)])
         self.post_sequence(sequence)
         # Wait until turn on duration is over
         while datetime.datetime.now() < end_time:
@@ -149,25 +154,26 @@ class StimController:
         if self.sequence_off_duration != 0:
             end_time = datetime.datetime.now() + datetime.timedelta(seconds=self.sequence_off_duration)
             self.send_laser_values([0] * 8)
-            self.lsl_outlet.push_sample(['off'])
+            self.marker_outlet.push_sample(['off'])
             self.post_sequence([0] * 8)
             # Wait until turn off duration is over
             while datetime.datetime.now() < end_time:
                 pass
         
     def run_trial(self, codebook: list):
+        """Run a single trial with multiple sequences"""
         self.post_description(f'Block:{self.block_num} Run:{self.run_num} Trial:{self.trial_num}')
-        self.lsl_outlet.push_sample(['Trial start'])
+        self.marker_outlet.push_sample(['Trial start'])
         for sequence in codebook:
             sequence_start_time = datetime.datetime.now()
             self.run_sequence(sequence)
             dt = datetime.datetime.now() - sequence_start_time
             logging.info(f'Sequence duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
-        self.lsl_outlet.push_sample(['Trial end'])
+        self.marker_outlet.push_sample(['Trial end'])
         self.trial_num = self.trial_num + 1
             
     def run_run(self):
-        self.lsl_outlet.push_sample(['Run start'])
+        self.marker_outlet.push_sample(['Run start'])
         for codebook in self.codebooks:
             trial_start_time = datetime.datetime.now()
             self.run_trial(codebook)
@@ -176,40 +182,43 @@ class StimController:
             # Rest for trial_rest_duration seconds
             rest_end_time = datetime.datetime.now() + datetime.timedelta(seconds=self.trial_rest_duration)
             self.post_description('Rest')
-            self.lsl_outlet.push_sample(['Trial Rest'])
+            self.marker_outlet.push_sample(['Trial Rest'])
             self.send_laser_values([0] * 8)
             self.post_sequence([0] * 8)
             while datetime.datetime.now() < rest_end_time:
                 pass
-        self.lsl_outlet.push_sample(['Run end'])
+        self.marker_outlet.push_sample(['Run end'])
         self.trial_num = 1
         self.run_num = self.run_num + 1
                 
     def run_block(self):
-        self.lsl_outlet.push_sample(['Block start'])
+        self.marker_outlet.push_sample(['Block start'])
         for _ in range(self.n_runs):
-            for i in range(30):
-                self.post_description(f'Rest. Run start in: {30 - i}')
-                self.lsl_outlet.push_sample(['Run Rest'])
-                sleep_s(1)
+        #     for i in range(30):
+        #         self.post_description(f'Rest. Run start in: {30 - i}')
+        #         self.lsl_outlet.push_sample(['Run Rest'])
+        #         sleep_s(1)
                 
             run_start_time = datetime.datetime.now()
             self.run_run()
             dt = datetime.datetime.now() - run_start_time
             logging.info(f'Run duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
-        self.lsl_outlet.push_sample(['Block end'])
+        self.marker_outlet.push_sample(['Block end'])
         self.run_num = 1
         self.block_num = self.block_num + 1
     
 
 if __name__ == "__main__":
+    # Set logging filaname to ./logs/log_%Y-%m-%d_%H-%M-%S.log
+    fname = datetime.datetime.now().strftime('./logs/log_%Y-%m-%d_%H-%M-%S.log')
     logging.basicConfig(
-        filename='log.log', 
+        filename=fname, 
         filemode='w',
         level=logging.INFO, 
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
     port = 'COM5'  # Change as needed
+    port = '/dev/tty.usbmodem156466901'  # Change to the correct port (MAC)
     controller = StimController(port)
     
     # Start recording lsl streams
@@ -224,12 +233,12 @@ if __name__ == "__main__":
     kw = input('Start run? y/n\n')
     if kw == 'y':
         # Start ERP condition 1
-        controller.load_codebooks_block_1()
-        controller.run_block()
+        # controller.load_codebooks_block_1()
+        # controller.run_block()
         
-        # Start ERP condition 2
-        controller.load_codebooks_block_2()
-        controller.run_block()
+        # # Start ERP condition 2
+        # controller.load_codebooks_block_2()
+        # controller.run_block()
         
         # Start cVEP
         controller.load_codebooks_block_3()
