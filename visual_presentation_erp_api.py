@@ -3,6 +3,7 @@ import pyglet
 from pyglet import shapes
 from pyglet.window import key
 import requests
+import pylsl
 
 
 class StimuliVisualization(pyglet.window.Window):
@@ -29,9 +30,6 @@ class StimuliVisualization(pyglet.window.Window):
         self.n_lasers = 8
         self.sequence = [0] * self.n_lasers
         
-        # Sequence fetch URL
-        self.url = "http://127.0.0.1:8000/get_sequence"
-        
         # Background properties
         self.background_color = (128, 128, 128, 255)
         self.background = shapes.Rectangle(0, 0, width, height, color=self.background_color, batch=self.batch)
@@ -53,7 +51,11 @@ class StimuliVisualization(pyglet.window.Window):
         
         # Add description text on screen
         self.description = pyglet.text.Label('Press ENTER to start', font_size=60, x=width//2, y=height//8, anchor_x='center', anchor_y='center', color=(0, 0, 0, 255), batch=self.batch)
-        self.description_url = 'http://127.0.0.1:8000/get_description'
+        
+        # Init LSL streams
+        self.marker_stream = None
+        self.description_stream = None
+        self.init_lsl_streams()
         
         # Load sequences
         self.ctx = dict(
@@ -68,6 +70,17 @@ class StimuliVisualization(pyglet.window.Window):
             elif value == 0:
                 self.circles[i].color = self.circle_background_color
     
+    def init_lsl_streams(self):
+        """Init marker and description lsl streams"""
+        streams = pylsl.resolve_streams(wait_time=1.0)
+        self.marker_stream = pylsl.resolve_byprop('name', 'LaserMarkerStream', timeout=1.0)[0]
+        self.marker_stream = pylsl.StreamInlet(self.marker_stream)
+        self.description_stream = pylsl.resolve_byprop('name', 'DescriptionStream', timeout=1.0)[0]
+        self.description_stream = pylsl.StreamInlet(self.description_stream)
+        
+        
+        
+    
     def lasers_off(self):
         """Turn off all lasers."""
         for i in range(self.n_lasers):
@@ -78,25 +91,25 @@ class StimuliVisualization(pyglet.window.Window):
         self.description.text = ''
         
     def fetch_sequence(self):
-        """Fetch the sequence from the API."""
+        """Fetch sequence from marker stream."""
         try:
-            response = requests.get(self.url)
-            # if response is invalid or empty, do nothing
-            if response.status_code == 200 and response.json():
-                self.sequence = response.json()['sequence']
-        except requests.exceptions.RequestException as e:
-            # print(f"Error fetching sequence: {e}")
+            sample, _ = self.marker_stream.pull_sample(timeout=0.0)
+            if sample:
+                sample = sample[0]
+                sample = eval(sample)
+                self.sequence = sample
+        except Exception as e:
+            print(f"Error fetching sequence: {e}")
             return
     
     def fetch_description(self):
-        """Fetch the description from the API."""
+        """Fetch the description from description stream"""
         try:
-            response = requests.get(self.description_url)
-            # if response is invalid or empty, do nothing
-            if response.status_code == 200 and response.json():
-                self.description.text = response.json()['description']
-        except requests.exceptions.RequestException as e:
-            # print(f"Error fetching description: {e}")
+            sample, _ = self.description_stream.pull_sample(timeout=0.0)
+            if sample:
+                self.description.text = sample[0]
+        except Exception as e:
+            print(f"Error fetching description: {e}")
             return
         
             
@@ -115,7 +128,7 @@ class StimuliVisualization(pyglet.window.Window):
             
             # Print update time in milliseconds
             end_time = datetime.now()
-            # print(f'Update time: {(end_time - start_time).microseconds / 1000} ms')
+            print(f'Update time: {(end_time - start_time).microseconds / 1000} ms')
         else:
             # Display text
             self.lasers_off()
@@ -136,11 +149,11 @@ class StimuliVisualization(pyglet.window.Window):
         
 
 if __name__ == "__main__":
-    FPS = 120 # fps shoud be double the 
+    FPS = 240 # fps shoud be double the 
     interval = 1 / FPS
     
     width, height = 1920, 1080
-    demo = StimuliVisualization(width, height, interval, fullscreen=True, vsync=True)
+    demo = StimuliVisualization(width, height, interval, fullscreen=False, vsync=False)
     pyglet.clock.schedule_interval(demo.update, interval=interval) # NOTE: MD: Schedule is fast enough. Using the standard system clock. -/+5~15ms due to clock.
     # fps_display.draw()
     pyglet.app.run(interval=interval)
