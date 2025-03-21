@@ -7,6 +7,7 @@ import time
 import numpy as np
 import requests
 from pylsl import StreamInfo, StreamOutlet, resolve_streams
+from dareplane_utils.general.time import sleep_s
 import logging
 logger = logging.getLogger(__name__)
 
@@ -129,6 +130,7 @@ class StimController:
     def post_sequence(self, sequence: list):
         """send sequence to lsl stream"""
         try:
+            sequence = [int(i) for i in sequence]
             self.marker_outlet.push_sample([str(sequence)])
         except Exception as e:
             logging.warning(f"Error posting sequence: {e}")
@@ -145,7 +147,7 @@ class StimController:
         # Turn on the Lasers
         end_time = datetime.datetime.now() + datetime.timedelta(seconds=self.sequence_on_duration)
         self.send_laser_values(sequence)
-        self.marker_outlet.push_sample([str(sequence)])
+        # self.marker_outlet.push_sample([str(sequence)])
         self.post_sequence(sequence)
         # Wait until turn on duration is over
         while datetime.datetime.now() < end_time:
@@ -194,10 +196,10 @@ class StimController:
     def run_block(self):
         self.marker_outlet.push_sample(['Block start'])
         for _ in range(self.n_runs):
-        #     for i in range(30):
-        #         self.post_description(f'Rest. Run start in: {30 - i}')
-        #         self.lsl_outlet.push_sample(['Run Rest'])
-        #         sleep_s(1)
+            for i in range(30):
+                self.post_description(f'Rest. Run start in: {30 - i}')
+                self.marker_outlet.push_sample(['Run Rest'])
+                sleep_s(1)
                 
             run_start_time = datetime.datetime.now()
             self.run_run()
@@ -233,12 +235,12 @@ if __name__ == "__main__":
     kw = input('Start run? y/n\n')
     if kw == 'y':
         # Start ERP condition 1
-        # controller.load_codebooks_block_1()
-        # controller.run_block()
+        controller.load_codebooks_block_1()
+        controller.run_block()
         
         # # Start ERP condition 2
-        # controller.load_codebooks_block_2()
-        # controller.run_block()
+        controller.load_codebooks_block_2()
+        controller.run_block()
         
         # Start cVEP
         controller.load_codebooks_block_3()
