@@ -2,8 +2,8 @@ from datetime import datetime
 import pyglet
 from pyglet import shapes
 from pyglet.window import key
-import requests
 import pylsl
+import serial
 
 
 class StimuliVisualization(pyglet.window.Window):
@@ -56,6 +56,12 @@ class StimuliVisualization(pyglet.window.Window):
         self.marker_stream = None
         self.description_stream = None
         self.init_lsl_streams()
+        
+        # Init vsync sensors
+        self.vsync_sensor = serial.Serial('COM6', 115200, timeout=1.0)
+        # Draw boxes for vsync sensors on top left and top right
+        self.vsync_box_left = shapes.Rectangle(0, height, width // 4, height // 4, color=(255, 255, 255, 255), batch=self.batch)
+        self.vsync_box_right = shapes.Rectangle(width - width // 4, height, width // 4, height // 4, color=(255, 255, 255, 255), batch=self.batch)
         
         # Load sequences
         self.ctx = dict(
