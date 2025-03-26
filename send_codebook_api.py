@@ -5,7 +5,6 @@ import psutil
 import serial
 import time
 import numpy as np
-import requests
 from pylsl import StreamInfo, StreamOutlet, resolve_streams
 import logging
 logger = logging.getLogger(__name__)
