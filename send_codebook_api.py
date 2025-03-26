@@ -38,12 +38,6 @@ class StimController:
         self.desc_outlet = None
         self.init_desc_lsl_stream()
         
-        # Check if API is running
-        try:
-            requests.get(self.url)
-        except Exception:
-            logging.warning("API not running. Not sending data to visual stimulation.")
-        
         # Experimental setup for codebooks 1 and 2
         self.sequence_on_duration = 0.1
         self.sequence_off_duration = 0.15
@@ -64,7 +58,7 @@ class StimController:
     def connect_teensy(self) -> None:
         try:
             self.teensy = serial.Serial(self.port, self.baud_rate, timeout=1)
-            time.sleep(2)  # Wait for Arduino to initialize
+            sleep_s(2)  # Wait for Arduino to initialize
         except Exception as e:
             logging.warning(f"Teensy not connected: {e}")
     
@@ -215,9 +209,9 @@ class StimController:
         """Run a block with multiple runs"""
         self.post_marker('Block start')
         for _ in range(self.n_runs):
+            self.post_marker('Run Rest')
             for i in range(30):
                 self.post_description(f'Rest. Run start in: {30 - i}')
-                self.post_marker('Run Rest')
                 sleep_s(1)
                 
             run_start_time = datetime.datetime.now()
@@ -229,19 +223,19 @@ class StimController:
         self.block_num = self.block_num + 1
         
     def run_session(self):
-        # Start ERP condition 1
-        controller.load_codebooks_block_1()
-        controller.run_block()
+        # # Start ERP condition 1
+        # controller.load_codebooks_block_1()
+        # controller.run_block()
         
         # # Start ERP condition 2
         controller.load_codebooks_block_2()
         controller.run_block()
         
-        # Start cVEP
-        controller.load_codebooks_block_3()
-        controller.sequence_on_duration = 1/63
-        controller.sequence_off_duration = 0
-        controller.run_block()
+        # # Start cVEP
+        # controller.load_codebooks_block_3()
+        # controller.sequence_on_duration = 1/63
+        # controller.sequence_off_duration = 0
+        # controller.run_block()
         
     def run_test(self):
         """Run a test sequence"""
@@ -276,6 +270,10 @@ if __name__ == "__main__":
     
     kw = input('Start run? y/n\n')
     
+    test = False
     if kw == 'y':
-        controller.run_session()
+        if test:
+            controller.run_test()
+        else:
+            controller.run_session()
     controller.post_description('Experiment over.')

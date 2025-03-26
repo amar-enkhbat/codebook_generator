@@ -58,16 +58,28 @@ class StimuliVisualization(pyglet.window.Window):
         self.init_lsl_streams()
         
         # Init vsync sensors
-        self.vsync_sensor = serial.Serial('COM6', 115200, timeout=1.0)
+        self.vsync_sensor = serial.Serial('COM6', 115200, timeout=0.0)
+        self.vsync_sensor.flushInput()
+        self.vsync_sensor.write(b'1') # Start sensor
         # Draw boxes for vsync sensors on top left and top right
-        self.vsync_box_left = shapes.Rectangle(0, height, width // 4, height // 4, color=(255, 255, 255, 255), batch=self.batch)
-        self.vsync_box_right = shapes.Rectangle(width - width // 4, height, width // 4, height // 4, color=(255, 255, 255, 255), batch=self.batch)
+        self.vsync_box_left = shapes.Rectangle(x=0, y=height-100, width=100, height=100, color=(0, 0, 0, 255), batch=self.batch)
+        self.vsync_box_right = shapes.Rectangle(x=width-100, y=height-100, width=100, height=100, color=(0, 0, 0, 255), batch=self.batch)
         
         # Load sequences
         self.ctx = dict(
             pause = True,
         )
-        
+    
+    def rect_off(self):
+        """Flip the vsync sensor boxes."""
+        if self.vsync_box_left.color == (255, 255, 255, 255):
+            self.vsync_box_left.color = (0, 0, 0, 255)
+            self.vsync_box_right.color = (0, 0, 0, 255)
+    def rect_on(self):
+        if self.vsync_box_left.color == (0, 0, 0, 255):
+            self.vsync_box_left.color = (255, 255, 255, 255)
+            self.vsync_box_right.color = (255, 255, 255, 255)
+    
     def lasers_on(self):
         """Turn on the lasers based on the sequence."""
         for i, value in enumerate(self.sequence):
@@ -85,6 +97,9 @@ class StimuliVisualization(pyglet.window.Window):
         self.marker_stream = pylsl.StreamInlet(self.marker_stream)
         self.description_stream = pylsl.resolve_byprop('name', 'DescriptionStream', timeout=1.0)[0]
         self.description_stream = pylsl.StreamInlet(self.description_stream)
+        
+        info = pylsl.StreamInfo(name='ScreenSensorStream', type='Marker', channel_count=1, channel_format=3)
+        self.sensor_outlet = pylsl.StreamOutlet(info)
     
     def lasers_off(self):
         """Turn off all lasers."""
@@ -126,6 +141,14 @@ class StimuliVisualization(pyglet.window.Window):
             self.fetch_sequence()
             # Turn on lasers
             self.lasers_on()
+            # Turn on rectangle
+            if sum(self.sequence) == 0:
+                self.rect_off()
+            else:
+                self.rect_on()
+            b = self.vsync_sensor.read().decode('utf-8')
+            if len(b) != 0:
+                self.sensor_outlet.push_sample([str(b)])
             # Fetch description
             self.fetch_description()
             
@@ -152,11 +175,11 @@ class StimuliVisualization(pyglet.window.Window):
         
 
 if __name__ == "__main__":
-    FPS = 240 # fps shoud be double the 
+    FPS = 120 # fps shoud be double the 
     interval = 1 / FPS
     
-    width, height = 1920, 1080
-    demo = StimuliVisualization(width, height, interval, fullscreen=False, vsync=False)
+    width, height = 800, 600
+    demo = StimuliVisualization(width, height, interval, fullscreen=True, vsync=True)
     pyglet.clock.schedule_interval(demo.update, interval=interval) # NOTE: MD: Schedule is fast enough. Using the standard system clock. -/+5~15ms due to clock.
     # fps_display.draw()
     pyglet.app.run(interval=interval)
