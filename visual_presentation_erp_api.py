@@ -73,13 +73,12 @@ class StimuliVisualization(pyglet.window.Window):
     def init_lsl_streams(self):
         """Init marker and description lsl streams"""
         streams = pylsl.resolve_streams(wait_time=1.0)
-        self.marker_stream = pylsl.resolve_byprop('name', 'LaserMarkerStream', timeout=1.0)[0]
+        self.sequence_stream = pylsl.resolve_byprop('name', 'SequenceStream', timeout=1.0)[0]
+        self.sequence_stream = pylsl.StreamInlet(self.sequence_stream)
+        self.marker_stream = pylsl.resolve_byprop('name', 'MarkerStream', timeout=1.0)[0]
         self.marker_stream = pylsl.StreamInlet(self.marker_stream)
         self.description_stream = pylsl.resolve_byprop('name', 'DescriptionStream', timeout=1.0)[0]
         self.description_stream = pylsl.StreamInlet(self.description_stream)
-        
-        
-        
     
     def lasers_off(self):
         """Turn off all lasers."""
@@ -93,10 +92,8 @@ class StimuliVisualization(pyglet.window.Window):
     def fetch_sequence(self):
         """Fetch sequence from marker stream."""
         try:
-            sample, _ = self.marker_stream.pull_sample(timeout=0.0)
-            if sample:
-                sample = sample[0]
-                sample = eval(sample)
+            sample, _ = self.sequence_stream.pull_sample(timeout=0.0)
+            if sample is not None:
                 self.sequence = sample
         except Exception as e:
             print(f"Error fetching sequence: {e}")
