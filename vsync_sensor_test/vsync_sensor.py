@@ -3,9 +3,9 @@ import pyglet
 from pyglet import shapes
 from pyglet.window import key
 import pylsl
-import serial
 import time
 
+pyglet.options['debug_gl'] = True
 
 class StimuliVisualization(pyglet.window.Window):
     def __init__(self, width=1920, height=1080, interval=120, fullscreen=False, vsync=False):
@@ -13,6 +13,7 @@ class StimuliVisualization(pyglet.window.Window):
         # Adjust window size based on fullscreen
         if fullscreen:
             pyglet.options.dpi_scaling = 'scaled'
+            pyglet.options.dpi_scaling = 'real'
             display = pyglet.display.get_display()
             screen = display.get_default_screen()
             fs_width, fs_height = screen.width, screen.height
@@ -31,12 +32,6 @@ class StimuliVisualization(pyglet.window.Window):
         self.background_color = (128, 128, 128, 255)
         self.background = shapes.Rectangle(0, 0, width, height, color=self.background_color, batch=self.batch)
 
-        # Init vsync sensors
-        self.vsync_sensor = serial.Serial('COM6', 115200, timeout=0.0)
-        self.vsync_sensor.flushInput()
-        self.vsync_sensor.write(b'1') # Start sensor
-        for i in range(12):
-            self.vsync_sensor.read()
         # Draw boxes for vsync sensors on top left and top right
         self.vsync_box_left = shapes.Rectangle(x=0, y=height-100, width=100, height=100, color=(0, 0, 0, 255), batch=self.batch)
         self.vsync_box_right = shapes.Rectangle(x=width-100, y=height-100, width=100, height=100, color=(0, 0, 0, 255), batch=self.batch)
@@ -44,18 +39,15 @@ class StimuliVisualization(pyglet.window.Window):
         # Add description text on screen
         self.description = pyglet.text.Label('Press ENTER to start', font_size=60, x=width//2, y=height//8, anchor_x='center', anchor_y='center', color=(0, 0, 0, 255), batch=self.batch)
         
+        # Sequence properties
         self.sequence = [0] * 8 # Initialize sequence with zeros
-        self.timestamp = 0 # Initialize timestamp
-        self.offset = 0 # Initialize offset
+        self.timestamp = 0.0 # Initialize timestamp
+        self.offset = 0.0 # Initialize offset
         # Log sensor results as csv file
-        self.sensor_results = "timestamp,value\n"
-        self.lsl_results = "timestamp,value,offset\n"
         
         # Init LSL streams
-        self.sequence_stream = pylsl.resolve_byprop('name', 'SequenceStream', timeout=0.0)[0]
-        self.sequence_stream = pylsl.StreamInlet(self.sequence_stream)
-        info = pylsl.StreamInfo(name='ScreenSensorStream', type='Marker', channel_count=1, channel_format=3)
-        self.sensor_outlet = pylsl.StreamOutlet(info)
+        self.sequence_inlet = pylsl.resolve_byprop('name', 'SequenceStream', timeout=0.0)[0]
+        self.sequence_inlet = pylsl.StreamInlet(self.sequence_inlet)
         
         info = pylsl.StreamInfo(name='ScreenSequenceStream', type='Marker', channel_count=8, channel_format=6)
         self.screen_sequence_outlet = pylsl.StreamOutlet(info)
@@ -71,6 +63,7 @@ class StimuliVisualization(pyglet.window.Window):
         if self.vsync_box_left.color == (255, 255, 255, 255):
             self.vsync_box_left.color = (0, 0, 0, 255)
             self.vsync_box_right.color = (0, 0, 0, 255)
+            
     def rect_on(self):
         if self.vsync_box_left.color == (0, 0, 0, 255):
             self.vsync_box_left.color = (255, 255, 255, 255)
@@ -83,46 +76,44 @@ class StimuliVisualization(pyglet.window.Window):
     def fetch_sequence(self):
         """Fetch sequence from marker stream."""
         try:
-            
-            sample, timestamp = self.sequence_stream.pull_sample(timeout=0.0)
-            offset = self.sequence_stream.time_correction()
+            sample, timestamp = self.sequence_inlet.pull_sample(timeout=0.0)
             if sample is not None:
+                offset = self.sequence_inlet.time_correction()
                 self.sequence = sample
-                value = 'A' if sum(self.sequence) > 0 else 'a'
-                self.timestamp = timestamp
+                self.timestamp = timestamp + offset
                 self.offset = offset
-                self.lsl_results += f"{timestamp},{value},{offset}\n"
-                
-                self.ctx['ctr'] += 1
+
         except Exception as e:
             print(f"Error fetching sequence: {e}")
-            return
             
     def update(self, dt):
         """Update the window every dt seconds."""
         if not self.ctx['pause']:
+            start_time = time.perf_counter()
             # Fetch sequence
             self.fetch_sequence()
             if self.ctx['ctr'] == 1000:
                 self.quit()
+            
             
             # Turn on rectangle
             if sum(self.sequence) == 0:
                 self.rect_off()
             else:
                 self.rect_on()
-            # Flip vsync buffer
+                
+            # Flip buffer
             self.flip()
-            
-            # Read from vsync sensor. Start after 100 flips
-            b = self.vsync_sensor.read().decode('utf-8')
-            if len(b) != 0:
-                if b.lower() == 'a':
-                    self.sensor_results += f"{pylsl.local_clock()},{b}\n"
-                    self.sensor_outlet.push_sample([b])
             self.screen_sequence_outlet.push_sample(self.sequence)
             
-            
+            # Check if process can happen within a frame flip
+            end_time = time.perf_counter()
+            elapsed_time = end_time - start_time
+            if elapsed_time > self.interval:
+                print(f"Warning: Processing time exceeded frame interval: {elapsed_time:.4f} seconds")
+                
+            self.ctx['ctr'] += 1
+                
         else:
             # Display text
             self.description.text = 'Press ENTER to start'
@@ -135,30 +126,19 @@ class StimuliVisualization(pyglet.window.Window):
     def on_key_press(self, symbol, modifiers):
         if symbol == key.ENTER:
             print('Enter key was pressed. Pause:', self.ctx['pause'])
-            self.vsync_sensor.flushInput()
-            self.vsync_sensor.write(b'1') # Start sensor
-            for i in range(12):
-                self.vsync_sensor.read()
-            
+            self.hide_text()
             self.ctx['pause'] = not self.ctx['pause']
-            
-            
             
         if symbol == key.ESCAPE:
             self.quit()
             
     def quit(self):
         """Exit the application."""
-        # Save sensor results to file
-        with open('sensor_results.csv', 'w') as f:
-            f.write(self.sensor_results)
-        with open('lsl_results.csv', 'w') as f:
-            f.write(self.lsl_results)
         pyglet.app.exit()
         
 
 def main():
-    fps = 240 # fps should be double the 
+    fps = 240
     interval = 1 / fps
     
     width, height = 1920, 1080

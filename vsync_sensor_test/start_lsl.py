@@ -13,17 +13,21 @@ def main():
     sequence_off = [0] * 8
     
     while True:
-        # Send on sequence
-        end_time = datetime.datetime.now() + datetime.timedelta(seconds=0.1)
-        sequence_outlet.push_sample(sequence_on)
-        while datetime.datetime.now() < end_time:
-            pass
-        
-        # Send off sequence
-        end_time = datetime.datetime.now() + datetime.timedelta(seconds=0.15)
-        sequence_outlet.push_sample(sequence_off)
-        while datetime.datetime.now() < end_time:
-            pass
+        try:
+            # Send on sequence
+            end_time = datetime.datetime.now() + datetime.timedelta(seconds=0.1)
+            sequence_outlet.push_sample(sequence_on)
+            while datetime.datetime.now() < end_time:
+                pass
+            
+            # Send off sequence
+            end_time = datetime.datetime.now() + datetime.timedelta(seconds=0.15)
+            sequence_outlet.push_sample(sequence_off)
+            while datetime.datetime.now() < end_time:
+                pass
+        except KeyboardInterrupt:
+            print("Stopping the sequence stream.")
+            break
     
 if __name__ == "__main__":
     main()
