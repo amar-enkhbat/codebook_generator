@@ -18,7 +18,7 @@ class StimController:
         self.port = port
         self.baud_rate = 115200
         
-        self.optimize_timer_resolution()
+        # self.optimize_timer_resolution()
         
         self.codebooks = []
         self.n_objs = 8
