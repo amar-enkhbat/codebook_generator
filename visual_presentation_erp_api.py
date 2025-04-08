@@ -155,6 +155,9 @@ class StimuliVisualization(pyglet.window.Window):
             # Print update time in milliseconds
             end_time = datetime.now()
             print(f'Update time: {(end_time - start_time).microseconds / 1000} ms')
+            
+            # Flip vsync buffer
+            self.flip()
         else:
             # Display text
             self.lasers_off()
@@ -175,7 +178,7 @@ class StimuliVisualization(pyglet.window.Window):
         
 
 if __name__ == "__main__":
-    FPS = 120 # fps shoud be double the 
+    FPS = 240 # fps shoud be double the 
     interval = 1 / FPS
     
     width, height = 800, 600
