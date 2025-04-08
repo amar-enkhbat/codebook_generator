@@ -57,6 +57,9 @@ class StimuliVisualization(pyglet.window.Window):
         info = pylsl.StreamInfo(name='ScreenSensorStream', type='Marker', channel_count=1, channel_format=3)
         self.sensor_outlet = pylsl.StreamOutlet(info)
         
+        info = pylsl.StreamInfo(name='ScreenSequenceStream', type='Marker', channel_count=8, channel_format=6)
+        self.screen_sequence_outlet = pylsl.StreamOutlet(info)
+        
         # Load sequences
         self.ctx = dict(
             pause = True,
@@ -108,11 +111,17 @@ class StimuliVisualization(pyglet.window.Window):
                 self.rect_off()
             else:
                 self.rect_on()
+            # Flip vsync buffer
+            self.flip()
+            
+            # Read from vsync sensor. Start after 100 flips
             b = self.vsync_sensor.read().decode('utf-8')
             if len(b) != 0:
                 if b.lower() == 'a':
                     self.sensor_results += f"{pylsl.local_clock()},{b}\n"
                     self.sensor_outlet.push_sample([b])
+            self.screen_sequence_outlet.push_sample(self.sequence)
+            
             
         else:
             # Display text
@@ -149,7 +158,7 @@ class StimuliVisualization(pyglet.window.Window):
         
 
 def main():
-    fps = 120 # fps should be double the 
+    fps = 240 # fps should be double the 
     interval = 1 / fps
     
     width, height = 1920, 1080
