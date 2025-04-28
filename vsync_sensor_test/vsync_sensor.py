@@ -47,7 +47,7 @@ class StimuliVisualization(pyglet.window.Window):
         # Log sensor results as csv file
         
         # Init LSL streams
-        self.sequence_inlet = pylsl.resolve_byprop('name', 'SequenceStream', timeout=0.0)[0]
+        self.sequence_inlet = pylsl.resolve_byprop('name', 'SequenceStream', timeout=0.001)[0]
         self.sequence_inlet = pylsl.StreamInlet(self.sequence_inlet)
         
         info = pylsl.StreamInfo(name='ScreenSequenceStream', type='Marker', channel_count=8, channel_format=6)
@@ -111,6 +111,7 @@ class StimuliVisualization(pyglet.window.Window):
             end_time = time.perf_counter()
             elapsed_time = end_time - start_time
             if elapsed_time > self.interval * 2:
+            if elapsed_time > self.interval * 2:
                 print(f"Warning: Processing time exceeded frame interval: {elapsed_time:.4f} seconds")
                 
             self.ctx['ctr'] += 1
@@ -139,6 +140,8 @@ class StimuliVisualization(pyglet.window.Window):
         
 
 def main():
+    fps = 120
+    interval = 1 / (fps * 2)
     fps = 120
     interval = 1 / (fps * 2)
     

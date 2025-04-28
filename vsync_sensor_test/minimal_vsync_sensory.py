@@ -92,7 +92,7 @@ class StimuliVisualization(pyglet.window.Window):
                 self.results.append({'timestamp': time.perf_counter(), 'value': 0})
                 while time.perf_counter() < start_time + 0.1:
                     pass
-            # self.flip()
+            self.flip()
 
         else:
             # Display text
@@ -120,15 +120,14 @@ class StimuliVisualization(pyglet.window.Window):
         
 
 def main():
-    fps = 120
+    fps = 60
     interval = 1 / (fps * 2)
     
     width, height = 1920, 1080
-    fullscreen = False
+    fullscreen = True
     vsync = True
     demo = StimuliVisualization(width, height, interval, fullscreen=fullscreen, vsync=vsync)
     pyglet.clock.schedule_interval(demo.update, interval=interval) # NOTE: MD: Schedule is fast enough. Using the standard system clock. -/+5~15ms due to clock.
-    # fps_display.draw()
     pyglet.app.run()
     
 if __name__ == "__main__":
