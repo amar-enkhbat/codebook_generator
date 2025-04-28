@@ -3,6 +3,7 @@
 import glob
 import numpy as np
 import datetime
+import time
 from pylsl import StreamInfo, StreamOutlet, resolve_streams
 
 def main():
@@ -12,18 +13,24 @@ def main():
     sequence_on = [1] * 8
     sequence_off = [0] * 8
     
+    ctr = 0
     while True:
         try:
+            if ctr % 5 == 0:
+                end_time = time.perf_counter() + 1
+                while time.perf_counter() < end_time:
+                    pass
             # Send on sequence
-            end_time = datetime.datetime.now() + datetime.timedelta(seconds=0.1)
+            end_time = time.perf_counter() + 1 / 60
             sequence_outlet.push_sample(sequence_on)
-            while datetime.datetime.now() < end_time:
+            ctr += 1
+            while time.perf_counter() < end_time:
                 pass
             
             # Send off sequence
-            end_time = datetime.datetime.now() + datetime.timedelta(seconds=0.15)
+            end_time = time.perf_counter() + 1 / 60
             sequence_outlet.push_sample(sequence_off)
-            while datetime.datetime.now() < end_time:
+            while time.perf_counter() < end_time:
                 pass
         except KeyboardInterrupt:
             print("Stopping the sequence stream.")

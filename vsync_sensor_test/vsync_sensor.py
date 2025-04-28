@@ -5,23 +5,24 @@ from pyglet.window import key
 import pylsl
 import time
 
-pyglet.options['debug_gl'] = True
+# import psutil, os
+# p = psutil.Process(os.getpid())
+# p.nice(psutil.HIGH_PRIORITY_CLASS)
+pyglet.options['debug_gl'] = False
 
 class StimuliVisualization(pyglet.window.Window):
-    def __init__(self, width=1920, height=1080, interval=120, fullscreen=False, vsync=False):
+    def __init__(self, width=1920, height=1080, interval=120, fullscreen=False, vsync=False, *args, **kwargs):
         """Initialize the window and properties."""
         # Adjust window size based on fullscreen
         if fullscreen:
-            pyglet.options.dpi_scaling = 'scaled'
-            pyglet.options.dpi_scaling = 'real'
+            # pyglet.options.dpi_scaling = 'scaled'
+            # pyglet.options.dpi_scaling = 'real'
             display = pyglet.display.get_display()
             screen = display.get_default_screen()
             fs_width, fs_height = screen.width, screen.height
             width, height = fs_width, fs_height
-        else:
-            pyglet.options.dpi_scaling = 'real'
         # Init window
-        super().__init__(width=width, height=height, caption="Visual Stimuli", fullscreen=fullscreen, vsync=vsync)
+        super().__init__(width=width, height=height, caption="Visual Stimuli", fullscreen=fullscreen, vsync=vsync, *args, **kwargs)
         
         # Window properties
         self.fps_display = pyglet.window.FPSDisplay(window=self, color=(0, 255, 0, 255))
@@ -109,7 +110,7 @@ class StimuliVisualization(pyglet.window.Window):
             # Check if process can happen within a frame flip
             end_time = time.perf_counter()
             elapsed_time = end_time - start_time
-            if elapsed_time > self.interval:
+            if elapsed_time > self.interval * 2:
                 print(f"Warning: Processing time exceeded frame interval: {elapsed_time:.4f} seconds")
                 
             self.ctx['ctr'] += 1
@@ -121,7 +122,7 @@ class StimuliVisualization(pyglet.window.Window):
     def on_draw(self):
         self.clear()
         self.batch.draw()
-        self.fps_display.draw()
+        # self.fps_display.draw()
 
     def on_key_press(self, symbol, modifiers):
         if symbol == key.ENTER:
@@ -138,16 +139,22 @@ class StimuliVisualization(pyglet.window.Window):
         
 
 def main():
-    fps = 240
-    interval = 1 / fps
+    fps = 120
+    interval = 1 / (fps * 2)
     
     width, height = 1920, 1080
     fullscreen = True
     vsync = True
-    demo = StimuliVisualization(width, height, interval, fullscreen=fullscreen, vsync=vsync)
+
+    config = pyglet.gl.Config(double_buffer=True, sample_buffers=1, samples=64)
+    # config = None
+
+    demo = StimuliVisualization(width, height, interval, fullscreen=fullscreen, vsync=vsync, config=config)
     pyglet.clock.schedule_interval(demo.update, interval=interval) # NOTE: MD: Schedule is fast enough. Using the standard system clock. -/+5~15ms due to clock.
+    # pyglet.clock.schedule(demo.update)
     # fps_display.draw()
-    pyglet.app.run(interval=interval)
+    pyglet.app.run(interval=1/fps)
+    # pyglet.app.run()
     
 if __name__ == "__main__":
     main()
