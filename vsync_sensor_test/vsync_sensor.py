@@ -12,16 +12,14 @@ class StimuliVisualization(pyglet.window.Window):
         """Initialize the window and properties."""
         # Adjust window size based on fullscreen
         if fullscreen:
-            pyglet.options.dpi_scaling = 'scaled'
-            pyglet.options.dpi_scaling = 'real'
             display = pyglet.display.get_display()
             screen = display.get_default_screen()
             fs_width, fs_height = screen.width, screen.height
             width, height = fs_width, fs_height
-        else:
-            pyglet.options.dpi_scaling = 'real'
+            
         # Init window
-        super().__init__(width=width, height=height, caption="Visual Stimuli", fullscreen=fullscreen, vsync=vsync)
+        config = pyglet.gl.Config(double_buffer=True, )
+        super().__init__(width=width, height=height, caption="Visual Stimuli", fullscreen=fullscreen, vsync=vsync, config=config)
         
         # Window properties
         self.fps_display = pyglet.window.FPSDisplay(window=self, color=(0, 255, 0, 255))
@@ -46,7 +44,7 @@ class StimuliVisualization(pyglet.window.Window):
         # Log sensor results as csv file
         
         # Init LSL streams
-        self.sequence_inlet = pylsl.resolve_byprop('name', 'SequenceStream', timeout=0.0)[0]
+        self.sequence_inlet = pylsl.resolve_byprop('name', 'SequenceStream', timeout=0.001)[0]
         self.sequence_inlet = pylsl.StreamInlet(self.sequence_inlet)
         
         info = pylsl.StreamInfo(name='ScreenSequenceStream', type='Marker', channel_count=8, channel_format=6)
@@ -109,7 +107,7 @@ class StimuliVisualization(pyglet.window.Window):
             # Check if process can happen within a frame flip
             end_time = time.perf_counter()
             elapsed_time = end_time - start_time
-            if elapsed_time > self.interval:
+            if elapsed_time > self.interval * 2:
                 print(f"Warning: Processing time exceeded frame interval: {elapsed_time:.4f} seconds")
                 
             self.ctx['ctr'] += 1
@@ -138,8 +136,8 @@ class StimuliVisualization(pyglet.window.Window):
         
 
 def main():
-    fps = 240
-    interval = 1 / fps
+    fps = 120
+    interval = 1 / (fps * 2)
     
     width, height = 1920, 1080
     fullscreen = True
@@ -147,7 +145,7 @@ def main():
     demo = StimuliVisualization(width, height, interval, fullscreen=fullscreen, vsync=vsync)
     pyglet.clock.schedule_interval(demo.update, interval=interval) # NOTE: MD: Schedule is fast enough. Using the standard system clock. -/+5~15ms due to clock.
     # fps_display.draw()
-    pyglet.app.run(interval=interval)
+    pyglet.app.run(interval=1 / fps)
     
 if __name__ == "__main__":
     main()
