@@ -21,14 +21,14 @@ def main():
                 while time.perf_counter() < end_time:
                     pass
             # Send on sequence
-            end_time = time.perf_counter() + 1 / 60
+            end_time = time.perf_counter() + 0.1
             sequence_outlet.push_sample(sequence_on)
             ctr += 1
             while time.perf_counter() < end_time:
                 pass
             
             # Send off sequence
-            end_time = time.perf_counter() + 1 / 60
+            end_time = time.perf_counter() + 0.15
             sequence_outlet.push_sample(sequence_off)
             while time.perf_counter() < end_time:
                 pass
