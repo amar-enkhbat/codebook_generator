@@ -11,7 +11,7 @@ from pylsl import StreamInfo, StreamOutlet
 pyglet.options['debug_gl'] = False
 
 class StimuliVisualization(pyglet.window.Window):
-    def __init__(self, width=1920, height=1080, fullscreen=False, vsync=True):
+    def __init__(self, width=2560, height=1440, fullscreen=False, vsync=True):
         super().__init__(width=width, height=height, caption="Visual Stimuli", fullscreen=fullscreen, vsync=vsync)
 
         self.batch = pyglet.graphics.Batch()
@@ -122,7 +122,8 @@ def main():
     p.nice(psutil.HIGH_PRIORITY_CLASS)
 
     demo = StimuliVisualization(fullscreen=True, vsync=True)
-    pyglet.clock.schedule_interval(demo.update, 1/120.0)
+    # pyglet.clock.schedule_interval(demo.update, 1/120.0)
+    pyglet.clock.schedule(demo.update)
     pyglet.app.run()
 
 

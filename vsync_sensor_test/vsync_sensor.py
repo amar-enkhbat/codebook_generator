@@ -29,7 +29,7 @@ class StimuliVisualization(pyglet.window.Window):
         self.rect_height = 200
         self.rect_width = 200
         self.vsync_box_left = shapes.Rectangle(x=0, y=height-self.rect_height, width=self.rect_width, height=self.rect_height, color=(0, 0, 0, 255), batch=self.batch)
-        self.vsync_box_right = shapes.Rectangle(x=width-self.rect_width, y=height-self.rect_height, width=self.rect_width, height=self.rect_height, color=(0, 0, 0, 255), batch=self.batch)
+        self.vsync_box_right = shapes.Rectangle(x=width-self.rect_width, y=height-self.rect_height, width=self.rect_width, height=1440, color=(0, 0, 0, 255), batch=self.batch)
 
         self.description = pyglet.text.Label('Press ENTER to start', font_size=60, x=width//2, y=height//8, anchor_x='center', anchor_y='center', color=(0, 0, 0, 255), batch=self.batch)
         self.warmup_text = pyglet.text.Label('', font_size=40, x=width//2, y=height//2, anchor_x='center', anchor_y='center', color=(255, 0, 0, 255), batch=self.batch)
@@ -44,10 +44,10 @@ class StimuliVisualization(pyglet.window.Window):
         self.flash_events = []  # List to store (state, timestamp) tuples
         self.last_flash_state = False
 
-        self.sequence_inlet = pylsl.resolve_byprop('name', 'SequenceStream', timeout=0.0)[0]
-        self.sequence_inlet = pylsl.StreamInlet(self.sequence_inlet)
+        self.sequence_inlet = pylsl.resolve_byprop('name', 'SequenceStream', timeout=0.0, )[0]
+        self.sequence_inlet = pylsl.StreamInlet(self.sequence_inlet, max_chunklen=0, max_buflen=1)
 
-        info = pylsl.StreamInfo(name='ScreenSequenceStream', type='Marker', channel_count=8, channel_format=6)
+        info = pylsl.StreamInfo(name='ScreenSequenceStream', type='Marker', channel_count=1, channel_format=6)
         self.screen_sequence_outlet = pylsl.StreamOutlet(info)
 
         marker_info = pylsl.StreamInfo(name='PhaseMarkers', type='Markers', channel_count=1, channel_format=pylsl.cf_string)
@@ -101,7 +101,6 @@ class StimuliVisualization(pyglet.window.Window):
 
                 self.fetch_sequence()
                 self.should_flash = (sum(self.sequence) != 0)
-                self.screen_sequence_outlet.push_sample(self.sequence)
 
                 self.ctx['ctr'] += 1
 
@@ -123,12 +122,15 @@ class StimuliVisualization(pyglet.window.Window):
         self.vsync_box_right.color = color
 
         self.batch.draw()
-        self.fps_display.draw()
+        # self.fps_display.draw()
+        # self.flip()
 
         if self.should_flash != self.last_flash_state:
             event = 'ON' if self.should_flash else 'OFF'
             self.flash_events.append((event, time.perf_counter()))
         self.last_flash_state = self.should_flash
+
+        self.screen_sequence_outlet.push_sample([1 if self.should_flash else 0])
 
     def on_key_press(self, symbol, modifiers):
         if symbol == key.ENTER:
@@ -145,10 +147,10 @@ class StimuliVisualization(pyglet.window.Window):
             else:
                 gc.enable()
         if symbol == key.ESCAPE:
-            self.phase_marker_outlet.push_sample(['EndExperiment'])
             self.quit()
 
     def quit(self):
+        self.phase_marker_outlet.push_sample(['EndExperiment'])
         gc.enable()
         print(f"Total dropped frames detected: {self.dropped_frames}")
         if self.flash_events:

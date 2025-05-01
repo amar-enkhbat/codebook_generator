@@ -7,7 +7,7 @@ import time
 from pylsl import StreamInfo, StreamOutlet, resolve_streams
 
 def main():
-    info = StreamInfo(name='SequenceStream', type='Marker', channel_count=8, channel_format=6)
+    info = StreamInfo(name='SequenceStream', type='Marker', channel_count=8, channel_format=6, nominal_srate=0)
     sequence_outlet = StreamOutlet(info)
     
     sequence_on = [1] * 8
