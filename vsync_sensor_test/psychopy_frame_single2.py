@@ -34,10 +34,10 @@ win.flip()
 event.waitKeys(keyList=['return', 'enter'])
 
 for i in range(10000):
-    event.waitKeys(keyList=['return', 'enter'])
+    print(i)
+    # event.waitKeys(keyList=['return', 'enter'])
 
     stime = time.perf_counter() # for more accurate timing on Windows OS
-
     # Set box color for current frame
     color = [1, 1, 1] if i % 2 == 0 else [-1, -1, -1]
     box.fillColor = color
@@ -52,6 +52,8 @@ for i in range(10000):
     etime = time.perf_counter() - stime # for more accurate timing on Windows OS
     if etime >= 1 / refresh_rate:
         print(f"Frame flip took too long ({etime:.6f}), dropping frames!")
+    if i % 10 == 0:
+        core.wait(1)
 
 
 # Cleanup
