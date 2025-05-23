@@ -25,26 +25,17 @@ window.flip()
 # Tracking state of key presses
 on_off_flag = False
 
-try:
-    while True:
-        window.dispatch_events()
-        
-        # Check for UP key press (only once when pressed)
-        if keys[key.ENTER]:
-            on_off_flag = not on_off_flag
-            if on_off_flag:
-                background.color = white
-            else:
-                background.color = black
-            window.clear()
-            background.draw()
-            window.flip()
-            if on_off_flag:
-                outlet.push_sample(['1'])
-            else:
-                outlet.push_sample(['0'])
 
-        # time.sleep(0.01)  # Small delay to prevent CPU overload
-
-except KeyboardInterrupt:
-    window.close()
+for i in range(1000):
+    window.dispatch_events()
+    if i % 2 == 0:
+        background.color = white
+    else:
+        background.color = black
+    window.clear()
+    background.draw()
+    window.flip()
+    if on_off_flag:
+        outlet.push_sample(['1'])
+    else:
+        outlet.push_sample(['0'])
