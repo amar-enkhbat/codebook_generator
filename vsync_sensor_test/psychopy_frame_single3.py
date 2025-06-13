@@ -13,7 +13,7 @@ n_stim_off_frames = int(stim_off_duration // frame_duration)
 print('#stim on frames:', n_stim_on_frames)
 print('#stim off frames:', n_stim_off_frames)
 
-n_stims = 1000
+n_stims = 10000
 
 rest_duration = 0.3  # seconds
 n_rest_frames = int(rest_duration // frame_duration)
