@@ -33,6 +33,7 @@ text.draw()
 win.flip()
 event.waitKeys(keyList=['return', 'enter'])
 
+outlet.push_sample(['Start'])
 for i in range(10000):
     print(i)
     # event.waitKeys(keyList=['return', 'enter'])
@@ -45,7 +46,7 @@ for i in range(10000):
     win.flip()
 
     # Send LSL marker
-    outlet.push_sample([str(sequence[i])])
+    outlet.push_sample(['1'])
 
     # Check for dropped frames
     # etime = time.time() - stime
@@ -53,7 +54,9 @@ for i in range(10000):
     if etime >= 1 / refresh_rate:
         print(f"Frame flip took too long ({etime:.6f}), dropping frames!")
     if i % 10 == 0:
-        core.wait(1)
+        core.wait(0.3)
+
+outlet.push_sample(['end'])
 
 
 # Cleanup

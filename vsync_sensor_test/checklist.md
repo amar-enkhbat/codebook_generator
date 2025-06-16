@@ -26,28 +26,28 @@ Highly recommended to use a GPU. Intel integrated GPUs use triple buffering whic
     - Antialiasing mode: OFF
     - Antialiasing - Setting: None
     - Antialiasing - Transparency: Off
-    Background Application Max Frame Rate: Off
-    CUDA -GPUs: All
-    CUDA -Sysmem Fallback Policy: Driver Default
-    DSR - Factors: OFF
-    DSR - Smoothness: OFF
-    __Low Latency Mode: Ultra__
-    Max Frame Rate: OFF
-    Multi-Frame Sampled AA (MFAA): OFF
-    __OpenGL GDI Compatiblity: Auto__
-    __OpenGL rendering GPU: NVIDIA GeForce GTX 1050 Ti (or your GPU and not Intel integrated GPU)__
-    __Power Management Mode: Prefer maximum Performance__
-    Preferred refresh rate (BenQ XL 2430T): Application controlled
-    Shader cache size: Driver default
-    Texture filtering - Anisotropic Sample Optimization: On
-    Texture filtering - Negative LOD bias: Allow
-    Texture filtering - Quality: High performance
-    Texture filtering - Trillinear optimization: On
-    Threaded optimization: Auto
-    __Triple buffering: OFF__
-    __Vertical sync: On__
-    Virtual reaility pre-rendered frames: 1
-    Vulkan/Opengl present method: Auto
+    - Background Application Max Frame Rate: Off
+    - CUDA -GPUs: All
+    - CUDA -Sysmem Fallback Policy: Driver Default
+    - DSR - Factors: OFF
+    - DSR - Smoothness: OFF
+    - __Low Latency Mode: Ultra__
+    - Max Frame Rate: OFF
+    - Multi-Frame Sampled AA (MFAA): OFF
+    - __OpenGL GDI Compatiblity: Auto__
+    - __OpenGL rendering GPU: NVIDIA GeForce GTX 1050 Ti (or your GPU and not Intel integrated GPU)__
+    - __Power Management Mode: Prefer maximum Performance__
+    - Preferred refresh rate (BenQ XL 2430T): Application controlled
+    - Shader cache size: Driver default
+    - Texture filtering - Anisotropic Sample Optimization: On
+    - Texture filtering - Negative LOD bias: Allow
+    - Texture filtering - Quality: High performance
+    - Texture filtering - Trillinear optimization: On
+    - Threaded optimization: Auto
+    - __Triple buffering: OFF__
+    - __Vertical sync: On__
+    - Virtual reaility pre-rendered frames: 1
+    - Vulkan/Opengl present method: Auto
 
 ## Vsync sensor settings
 Highly recommended to connect tthe vsync sensor to the motherboard directly. Or high speed USB-TYpe C hub.
