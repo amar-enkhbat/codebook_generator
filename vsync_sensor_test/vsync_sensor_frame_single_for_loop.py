@@ -6,10 +6,12 @@ from pylsl import StreamInfo, StreamOutlet
 # Parameters
 refresh_rate = 60  # Hz
 frame_duration = 1 / refresh_rate
-stim_on_duration = 0.1 # seconds
-stim_off_duration = 0.15 # seconds
-n_stim_on_frames = int(stim_on_duration // frame_duration)
-n_stim_off_frames = int(stim_off_duration // frame_duration)
+# stim_on_duration = 0.1 # seconds
+# stim_off_duration = 0.15 # seconds
+# n_stim_on_frames = int(stim_on_duration // frame_duration)
+# n_stim_off_frames = int(stim_off_duration // frame_duration)
+n_stim_on_frames = 1
+n_stim_off_frames = 1
 print('#stim on frames:', n_stim_on_frames)
 print('#stim off frames:', n_stim_off_frames)
 
@@ -74,17 +76,13 @@ perf_wait(1)
 for stim_num in range(n_stims):
     # print('Stim num:', stim_num)
     # Stim on
-    on_flip(white)
     for i in range(n_stim_on_frames):
-        background.draw()
-        window.flip()
+        on_flip(white)
         if i == 0: # Send label only after first flip
             outlet.push_sample(['1'])
     # Stim off
-    on_flip(black)
     for i in range(n_stim_off_frames):
-        background.draw()
-        window.flip()
+        on_flip(black)
         if i == 0: # Send label only after first flip
             outlet.push_sample(['0'])
     # Pause every 12 stims
