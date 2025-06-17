@@ -6,7 +6,7 @@ from tqdm import tqdm
 from scipy.signal import convolve2d
 from scipy.signal import max_len_seq
 import numpy as np
-import pyntbci
+
 
 random.seed(42)
 np.random.seed(42)
