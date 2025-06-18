@@ -27,14 +27,14 @@ def generate_sentence(objects: list, ref: str, target: str) -> str:
 
 # Example usage
 objects = [
-    "red cup",
-    "white gauze",
-    "plastic tube",
-    "tin box", 
-    "red candle", 
-    "medicine box",
-    "blue book", 
-    "black cup"
+    "red-cup",
+    "white-gauze",
+    "plastic-tube",
+    "tin-box", 
+    "red-candle", 
+    "medicine-box",
+    "blue-book", 
+    "black-cup"
 ]
 
 df = []
