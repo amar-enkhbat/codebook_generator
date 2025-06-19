@@ -23,6 +23,9 @@ class StimController:
         self.n_objs = 8
         self.obj_names = ['red-cup', 'white-gauze', 'plastic-tube', 'tin-box', 'red-candle', 'medicine-box', 'blue-book', 'black-cup']
         
+        # Mode
+        self.mode = 'screen'
+
         # Connect to teensy
         self.teensy = None
         self.connect_teensy()
@@ -70,7 +73,7 @@ class StimController:
         self.conditions = np.arange(self.n_blocks)
 
         # Screen condition (condition 4)
-        self.win = visual.Window(size=(1920, 1080), winType='pyglet', fullscr=True, screen=1, units="pix", color='black', waitBlanking=True, allowGUI=True)
+        self.win = visual.Window(size=(1920, 1080), winType='pyglet', fullscr=True, screen=1, units="pix", color='grey', waitBlanking=True, allowGUI=True)
 
         # Create a box on top left
         width, height = self.win.size
@@ -184,6 +187,7 @@ class StimController:
             try:
                 x = self.button_box.readline().decode()
                 if len(x):
+                    audio.stop()
                     break
             except:
                 continue
@@ -195,7 +199,10 @@ class StimController:
         """Run a single sequence"""
         # Turn on the Lasers
         end_time = time.perf_counter() + self.sequence_on_duration
-        self.send_laser_values(sequence)
+        if self.mode == 'scene':
+            self.send_laser_values(sequence)
+        elif self.mode == 'screen':
+            self.flip_boxes(sequence)
         self.post_sequence(sequence)
         # Wait until turn on duration is over
         while time.perf_counter() <= end_time:
@@ -204,7 +211,10 @@ class StimController:
         # Turn off the lasers
         if self.sequence_off_duration != 0:
             end_time = time.perf_counter() + self.sequence_off_duration
-            self.send_laser_values([0] * 8)
+            if self.mode == 'scene':
+                self.send_laser_values([0] * 8)
+            elif self.mode == 'screen':
+                self.flip_boxes([0] * 8)
             self.post_sequence([0] * 8)
             # Wait until turn off duration is over
             while time.perf_counter() <= end_time:
@@ -219,6 +229,13 @@ class StimController:
             dt = time.perf_counter() - sequence_start_time
             logging.info(f'Sequence duration: {dt // 60} mins {dt % 60} secs {(dt * 1000) } ms')
         self.post_marker('Trial end')
+
+        # Reset
+        if self.mode == 'scene':
+            self.send_laser_values([0] * 8)
+        elif self.mode == 'screen':
+            self.flip_boxes([0] * 8)
+
         self.trial_num = self.trial_num + 1
             
     def run_run(self):
@@ -245,8 +262,6 @@ class StimController:
             # Rest for trial_rest_duration seconds
             rest_end_time = time.perf_counter() + self.trial_rest_duration
             self.post_marker('Trial Rest')
-            self.send_laser_values([0] * 8)
-            self.post_sequence([0] * 8)
             while time.perf_counter() <= rest_end_time:
                 pass
         self.post_marker('Run end')
@@ -257,7 +272,7 @@ class StimController:
         """Run a block with multiple runs"""
         # Randomize conditions
         conditions = np.random.permutation(self.conditions)
-        conditions = [3, 2, 1, 0]
+        conditions = [2, 3, 1, 0]
         conditions = np.repeat(conditions, 2)
 
         self.post_marker(f"Block condition order: {conditions}") # Save conditions to marker
@@ -267,18 +282,22 @@ class StimController:
         for condition in conditions:
             # Load codebook depending on condition
             if condition == 0:
+                self.mode = 'scene'
                 controller.load_codebooks_block_1()
                 controller.sequence_on_duration = 0.1
                 controller.sequence_off_duration = 0.15
             elif condition == 1:
+                self.mode = 'scene'
                 controller.load_codebooks_block_2()
                 controller.sequence_on_duration = 0.1
                 controller.sequence_off_duration = 0.15
             elif condition == 2:
+                self.mode = 'scene'
                 controller.load_codebooks_block_3()
                 controller.sequence_on_duration = 1/63
                 controller.sequence_off_duration = 0
             else:
+                self.mode = 'screen'
                 controller.load_codebooks_block_2()
                 controller.sequence_on_duration = 0.1
                 controller.sequence_off_duration = 0.15
@@ -302,18 +321,25 @@ class StimController:
         
     def run_test(self):
         """Run a test sequence"""
-        controller.sequence_on_duration = 1/63
-        controller.sequence_off_duration = 0
         self.load_codebooks_block_3()
         self.post_marker('Test start')
         while True:
             try:
                 self.run_sequence([1] * 8)
+                self.run_sequence([0] * 8)
             except KeyboardInterrupt:
                 self.run_sequence([0] * 8)
                 break
         self.post_marker('Test end')
     
+    def flip_boxes(self, sequence: np.ndarray):
+        self.boxes[0].fillColor = 'white' if np.sum(sequence) > 1 else 'black'
+        self.boxes[0].draw()
+
+        for val, box in zip(sequence, self.boxes[1:]):
+            box.fillColor = 'white' if val == 1 else 'black'
+            box.draw()
+        self.win.flip()
 
 if __name__ == "__main__":
     # Set logging filename to ./logs/log_%Y-%m-%d_%H-%M-%S.log
@@ -327,8 +353,8 @@ if __name__ == "__main__":
     # port = 'COM7'  # Windows
     # port = '/dev/tty.usbmodem156466901' # Mac
     controller = StimController()
-    
-    test = True
+    controller.mode = 'screen'
+    test = False
     print('TEST:', test)
     # Start experiment
     kw = input('Start run? y/n\n')
