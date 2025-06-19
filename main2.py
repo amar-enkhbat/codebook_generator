@@ -8,20 +8,20 @@ import numpy as np
 from pylsl import StreamInfo, StreamOutlet, resolve_streams
 import logging
 from utils import perf_sleep
+from psychopy import sound, visual, prefs
+prefs.hardware['audioLib'] = ['PTB']
+prefs.hardware['audioDevice'] = 'Speakers / Headphones (Realtek Audio)'
+
 
 from typing import List
 
 logger = logging.getLogger(__name__)
 
 class StimController:
-    def __init__(self, port: str):
-        self.port = port
-        self.baud_rate = 115200
-        
-        # self.optimize_timer_resolution()
-        
+    def __init__(self):
         self.codebooks = []
         self.n_objs = 8
+        self.obj_names = ['red-cup', 'white-gauze', 'plastic-tube', 'tin-box', 'red-candle', 'medicine-box', 'blue-book', 'black-cup']
         
         # Connect to teensy
         self.teensy = None
@@ -48,10 +48,16 @@ class StimController:
         self.cue_duration = 6
         self.trial_duration = 12 # Except condition 1 where it is 24 seconds
         self.trial_rest_duration = 3
+        self.trial_duration = 12 # Except condition 1 where it is 24 seconds
+        self.trial_rest_duration = 1
         self.n_trials = self.n_objs
 
         self.run_rest_duration = 30
+        self.run_rest_duration = 1
         self.n_runs = 8
+        self.n_blocks = 4
+        self.block_rest_duration = 300
+        self.block_rest_duration = 1
         self.obj_order = np.arange(self.n_objs)
         self.obj_orders = {}
         
@@ -59,15 +65,30 @@ class StimController:
         self.trial_num = 1
         self.run_num = 1
         self.block_num = 1
+
+        # Number of conditions
+        self.conditions = np.arange(self.n_blocks)
+
+        # Screen condition (condition 4)
+        self.win = visual.Window(size=(1920, 1080), winType='pyglet', fullscr=True, screen=1, units="pix", color='black', waitBlanking=True, allowGUI=True)
+
+        # Create a box on top left
+        width, height = self.win.size
+        box_size = 100
+
+        self.boxes = []
+        self.boxes.append(visual.Rect(self.win, width=100, height=100, pos=(-width / 2, height / 2), color='red'))
+        for i in range(8):
+            self.boxes.append(visual.Rect(self.win, width=box_size, height=box_size, pos=(150*i - height/2, 0)))
     
     def connect_teensy(self) -> None:
         try:
-            self.teensy = serial.Serial(self.port, self.baud_rate, timeout=1)
+            self.teensy = serial.Serial(port='COM7', baudrate=115200, timeout=1)
             perf_sleep(2)  # Wait for Arduino to initialize
         except Exception as e:
             logging.warning(f"Teensy not connected: {e}")
 
-    def connect_button_box(self, port='COM6', baud_rate='115200', timeout=1.0) -> None:
+    def connect_button_box(self, port='COM6', baud_rate=115200, timeout=1.0) -> None:
         try:
             self.button_box = serial.Serial(port, baud_rate, timeout=timeout)
             self.button_box.write('A1'.encode())
@@ -111,7 +132,8 @@ class StimController:
         self.codebooks = []
         codebook = self.load_codebook(filepath)
         for _ in range(self.n_objs):
-            self.codebooks.append(codebook.tolist())
+            self.codebooks.append(codebook)
+        self.codebooks = np.array(self.codebooks)
         logging.info(f'Codebooks loaded. shape: {np.array(self.codebooks).shape}')
             
     def load_codebooks_block_2(self, dir: str='./codebooks/condition_2') -> None:
@@ -122,8 +144,9 @@ class StimController:
         assert len(fpaths) == self.n_objs, f'there should be {self.n_objs} codebooks for block 2. Current codebooks: {len(fpaths)}'
         
         for fpath in fpaths:
-            codebook = self.load_codebook(fpath).tolist()
+            codebook = self.load_codebook(fpath)
             self.codebooks.append(codebook)
+        self.codebooks = np.array(self.codebooks)
         logging.info(f'Codebooks loaded. shape: {np.array(self.codebooks).shape}')
         
     def load_codebooks_block_3(self, fpath: str='./codebooks/condition_3/mseq_61_shift_8.npy') -> None:
@@ -134,7 +157,6 @@ class StimController:
         # Select 8 codebooks
         codebook = np.vstack([codebook] * self.trial_duration)
         self.codebooks = np.array([codebook] * 8)
-        self.codebooks = self.codebooks.tolist()
         
         logging.info(f'Codebooks loaded. shape: {np.array(self.codebooks).shape}')
             
@@ -153,6 +175,22 @@ class StimController:
         except Exception as e:
             logging.warning(f"Error posting marker: {e}")
 
+    def cue_audio(self, ref_obj: str, target_obj: str):
+        """Cue audio before a trial"""
+        audio = sound.Sound(f'./tts/queries/output_{ref_obj}2{target_obj}.wav')
+        audio.play(loops=100)
+
+        while True:
+            try:
+                x = self.button_box.readline().decode()
+                if len(x):
+                    break
+            except:
+                continue
+        # wait 2 to 4 seconds
+        perf_sleep(np.random.choice(20, 40)[0] / 10)
+
+
     def run_sequence(self, sequence: list):
         """Run a single sequence"""
         # Turn on the Lasers
@@ -169,7 +207,7 @@ class StimController:
             self.send_laser_values([0] * 8)
             self.post_sequence([0] * 8)
             # Wait until turn off duration is over
-            while time.perf_counter() < end_time:
+            while time.perf_counter() <= end_time:
                 pass
         
     def run_trial(self, codebook: list):
@@ -179,26 +217,37 @@ class StimController:
             sequence_start_time = time.perf_counter()
             self.run_sequence(sequence)
             dt = time.perf_counter() - sequence_start_time
-            logging.info(f'Sequence duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
+            logging.info(f'Sequence duration: {dt // 60} mins {dt % 60} secs {(dt * 1000) } ms')
         self.post_marker('Trial end')
         self.trial_num = self.trial_num + 1
             
     def run_run(self):
         """Run a single run with multiple trials"""
-        self.obj_order = np.random.permutation(np.arange(self.n_objs))
-        codebooks = self.codebooks(self.obj_order)
+        # Randomize objects
+        obj_order = np.random.permutation(np.arange(self.n_objs))
+        print('Objects order:', obj_order)
+
+        codebooks = self.codebooks[obj_order]
+        self.post_marker(f"Objects order: {obj_order}") # Save order objects to marker
+
         self.post_marker('Run start')
-        for idx, codebook in zip(self.obj_order, codebooks):
+        for target_obj_idx, codebook in zip(obj_order, codebooks):
+            target_obj = self.obj_names[target_obj_idx]
+            ref_obj_idx = np.random.choice(obj_order, 1, p=(obj_order != target_obj_idx) / (obj_order != target_obj_idx).sum())[0]
+            ref_obj = self.obj_names[ref_obj_idx]
+            print(f'Target obj: {target_obj}, ref_obj: {ref_obj}')
+            self.cue_audio(ref_obj, target_obj)
+
             trial_start_time = time.perf_counter()
             self.run_trial(codebook)
             dt = time.perf_counter() - trial_start_time
-            logging.info(f'Trial duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
+            logging.info(f'Trial duration: {dt // 60} mins {dt % 60} secs {dt * 1000} ms')
             # Rest for trial_rest_duration seconds
             rest_end_time = time.perf_counter() + self.trial_rest_duration
             self.post_marker('Trial Rest')
             self.send_laser_values([0] * 8)
             self.post_sequence([0] * 8)
-            while time.perf_counter() < rest_end_time:
+            while time.perf_counter() <= rest_end_time:
                 pass
         self.post_marker('Run end')
         self.trial_num = 1
@@ -206,46 +255,68 @@ class StimController:
                 
     def run_block(self):
         """Run a block with multiple runs"""
+        # Randomize conditions
+        conditions = np.random.permutation(self.conditions)
+        conditions = [3, 2, 1, 0]
+        conditions = np.repeat(conditions, 2)
+
+        self.post_marker(f"Block condition order: {conditions}") # Save conditions to marker
+        assert len(conditions) == self.n_runs, 'n_runs and n conditions do not match!'
+
         self.post_marker('Block start')
-        for _ in range(self.n_runs):
+        for condition in conditions:
+            # Load codebook depending on condition
+            if condition == 0:
+                controller.load_codebooks_block_1()
+                controller.sequence_on_duration = 0.1
+                controller.sequence_off_duration = 0.15
+            elif condition == 1:
+                controller.load_codebooks_block_2()
+                controller.sequence_on_duration = 0.1
+                controller.sequence_off_duration = 0.15
+            elif condition == 2:
+                controller.load_codebooks_block_3()
+                controller.sequence_on_duration = 1/63
+                controller.sequence_off_duration = 0
+            else:
+                controller.load_codebooks_block_2()
+                controller.sequence_on_duration = 0.1
+                controller.sequence_off_duration = 0.15
+            
             self.post_marker('Run Rest')
-            for i in range(30):
-                perf_sleep(1)
+            perf_sleep(self.run_rest_duration)
                 
             run_start_time = time.perf_counter()
             self.run_run()
             dt = time.perf_counter() - run_start_time
-            logging.info(f'Run duration: {dt.seconds // 60} mins {dt.seconds % 60} secs {dt.microseconds / 1000} ms')
+            logging.info(f'Run duration: {dt // 60} mins {dt % 60} secs {dt * 1000} ms')
         self.post_marker('Block end')
         self.run_num = 1
         self.block_num = self.block_num + 1
         
     def run_session(self):
         # Start ERP condition 1
-        controller.load_codebooks_block_1()
-        controller.run_block()
-        
-        # Start ERP condition 2
-        # controller.load_codebooks_block_2()
-        # controller.run_block()
-        
-        # # # Start cVEP
-        # controller.load_codebooks_block_3()
-        # controller.sequence_on_duration = 1/63
-        # controller.sequence_off_duration = 0
-        # controller.run_block()
+        for i in range(self.n_blocks):
+            controller.run_block()
+            perf_sleep(self.block_rest_duration)
         
     def run_test(self):
         """Run a test sequence"""
+        controller.sequence_on_duration = 1/63
+        controller.sequence_off_duration = 0
+        self.load_codebooks_block_3()
         self.post_marker('Test start')
-        for i in range(8):
-            self.run_sequence([0] * 8)
-            self.run_sequence([1] * 8)
+        while True:
+            try:
+                self.run_sequence([1] * 8)
+            except KeyboardInterrupt:
+                self.run_sequence([0] * 8)
+                break
         self.post_marker('Test end')
     
 
 if __name__ == "__main__":
-    # Set logging filaname to ./logs/log_%Y-%m-%d_%H-%M-%S.log
+    # Set logging filename to ./logs/log_%Y-%m-%d_%H-%M-%S.log
     filename = datetime.datetime.now().strftime('./logs/log_%Y-%m-%d_%H-%M-%S.log')
     logging.basicConfig(
         filename=filename, 
@@ -253,14 +324,15 @@ if __name__ == "__main__":
         level=logging.INFO, 
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
-    port = 'COM7'  # Windows
+    # port = 'COM7'  # Windows
     # port = '/dev/tty.usbmodem156466901' # Mac
-    controller = StimController(port)
+    controller = StimController()
     
+    test = True
+    print('TEST:', test)
     # Start experiment
     kw = input('Start run? y/n\n')
     
-    test = True
     if kw == 'y':
         if test:
             controller.run_test()
