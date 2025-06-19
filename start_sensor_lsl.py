@@ -5,8 +5,13 @@ def main():
     vsync_sensor = serial.Serial('COM3', 115200, timeout=0.01)
     vsync_sensor.reset_input_buffer()
     vsync_sensor.write(b'1') # Start sensor
-    for _ in range(30):
-        print(vsync_sensor.read())
+
+    text = ""
+    for _ in range(100):
+        text = text + vsync_sensor.read().decode()
+        if "calibrated\r\n" in text:
+            print("Sensor ready!")
+            break
         
     info = pylsl.StreamInfo(name='ScreenSensorStream', type='Marker', channel_count=1, channel_format=6, nominal_srate=0)
     sensor_outlet = pylsl.StreamOutlet(info)
