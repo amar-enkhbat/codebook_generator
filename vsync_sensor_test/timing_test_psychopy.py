@@ -32,19 +32,28 @@ win = visual.Window(size=(1920, 1080), winType='pyglet', fullscr=True, screen=1,
 
 # Create a box on top left
 width, height = win.size
-box_size = 1000
-box = visual.Rect(win, width=box_size, height=box_size, pos=((-width / 2 + box_size / 2, height / 2 - box_size / 2)))
+box_size = 100
+
+boxes = []
+boxes.append(visual.Rect(win, width=100, height=100, pos=(-width / 2, height / 2), color='red'))
+for i in range(8):
+    boxes.append(visual.Rect(win, width=box_size, height=box_size, pos=(150*i - height/2, 0)))
+
+
+# Image stims
 
 # Warmup
 for i in range(5 * 60):
     color = 'white' if i % 2 == 0 else 'black'
-    box.fillColor = color
-    box.draw()
+    for box in boxes:
+        box.fillColor = color
+        box.draw()
     win.flip()
 
 # Wait start
-box.fillColor = 'black'
-box.draw()
+for box in boxes:
+    box.fillColor = 'black'
+    box.draw()
 win.flip()
 
 # Wait for Enter key to start
@@ -60,24 +69,29 @@ core.wait(1)
 
 for stim_num in range(n_stims):
     # Stim on
-    box.fillColor = 'white'
+    
     for i in range(n_stim_on_frames):
-        box.draw()
+        for box in boxes:
+            box.fillColor = 'white'
+            box.draw()
         win.flip()
         if i == 0: # Send label only after first flip
            outlet.push_sample(['1'])
     # Stim off
-    box.fillColor = 'black'
+    
     for i in range(n_stim_off_frames):
-        box.draw()
+        for box in boxes:
+            box.fillColor = 'black'
+            box.draw()
         win.flip()
         if i == 0: # Send label only after first flip
            outlet.push_sample(['0'])
     # Pause every 12 stims
     if (stim_num + 1) % 12 == 0:
-        box.fillColor = 'black'
         for _ in range(n_rest_frames):
-            box.draw()
+            for box in boxes:
+                box.fillColor = 'black'
+                box.draw()
             win.flip()
 
 # End experiment
