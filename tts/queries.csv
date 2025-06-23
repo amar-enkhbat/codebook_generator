@@ -1,57 +1,57 @@
 ref,target,sentence
-red-cup,white-gauze,Select the object to the right of red-cup.
-red-cup,plastic-tube,Select the second object to the right of red-cup.
-red-cup,tin-box,Select the third object to the right of red-cup.
-red-cup,red-candle,Select the fourth object to the right of red-cup.
-red-cup,medicine-box,Select the fifth object to the right of red-cup.
-red-cup,blue-book,Select the sixth object to the right of red-cup.
-red-cup,black-cup,Select the seventh object to the right of red-cup.
-white-gauze,red-cup,Select the object to the left of white-gauze.
-white-gauze,plastic-tube,Select the object to the right of white-gauze.
-white-gauze,tin-box,Select the second object to the right of white-gauze.
-white-gauze,red-candle,Select the third object to the right of white-gauze.
-white-gauze,medicine-box,Select the fourth object to the right of white-gauze.
-white-gauze,blue-book,Select the fifth object to the right of white-gauze.
-white-gauze,black-cup,Select the sixth object to the right of white-gauze.
-plastic-tube,red-cup,Select the second object to the left of plastic-tube.
-plastic-tube,white-gauze,Select the object to the left of plastic-tube.
-plastic-tube,tin-box,Select the object to the right of plastic-tube.
-plastic-tube,red-candle,Select the second object to the right of plastic-tube.
-plastic-tube,medicine-box,Select the third object to the right of plastic-tube.
-plastic-tube,blue-book,Select the fourth object to the right of plastic-tube.
-plastic-tube,black-cup,Select the fifth object to the right of plastic-tube.
-tin-box,red-cup,Select the third object to the left of tin-box.
-tin-box,white-gauze,Select the second object to the left of tin-box.
-tin-box,plastic-tube,Select the object to the left of tin-box.
-tin-box,red-candle,Select the object to the right of tin-box.
-tin-box,medicine-box,Select the second object to the right of tin-box.
-tin-box,blue-book,Select the third object to the right of tin-box.
-tin-box,black-cup,Select the fourth object to the right of tin-box.
-red-candle,red-cup,Select the fourth object to the left of red-candle.
-red-candle,white-gauze,Select the third object to the left of red-candle.
-red-candle,plastic-tube,Select the second object to the left of red-candle.
-red-candle,tin-box,Select the object to the left of red-candle.
-red-candle,medicine-box,Select the object to the right of red-candle.
-red-candle,blue-book,Select the second object to the right of red-candle.
-red-candle,black-cup,Select the third object to the right of red-candle.
-medicine-box,red-cup,Select the fifth object to the left of medicine-box.
-medicine-box,white-gauze,Select the fourth object to the left of medicine-box.
-medicine-box,plastic-tube,Select the third object to the left of medicine-box.
-medicine-box,tin-box,Select the second object to the left of medicine-box.
-medicine-box,red-candle,Select the object to the left of medicine-box.
-medicine-box,blue-book,Select the object to the right of medicine-box.
-medicine-box,black-cup,Select the second object to the right of medicine-box.
-blue-book,red-cup,Select the sixth object to the left of blue-book.
-blue-book,white-gauze,Select the fifth object to the left of blue-book.
-blue-book,plastic-tube,Select the fourth object to the left of blue-book.
-blue-book,tin-box,Select the third object to the left of blue-book.
-blue-book,red-candle,Select the second object to the left of blue-book.
-blue-book,medicine-box,Select the object to the left of blue-book.
-blue-book,black-cup,Select the object to the right of blue-book.
-black-cup,red-cup,Select the seventh object to the left of black-cup.
-black-cup,white-gauze,Select the sixth object to the left of black-cup.
-black-cup,plastic-tube,Select the fifth object to the left of black-cup.
-black-cup,tin-box,Select the fourth object to the left of black-cup.
-black-cup,red-candle,Select the third object to the left of black-cup.
-black-cup,medicine-box,Select the second object to the left of black-cup.
-black-cup,blue-book,Select the object to the left of black-cup.
+bottle,bandage,Select the object immediately to the right of the bottle.
+bottle,remote,Select the second object to the right of the bottle.
+bottle,can,Select the third object to the right of the bottle.
+bottle,candle,Select the fourth object to the right of the bottle.
+bottle,box,Select the fifth object to the right of the bottle.
+bottle,book,Select the sixth object to the right of the bottle.
+bottle,cup,Select the seventh object to the right of the bottle.
+bandage,bottle,Select the object immediately to the left of the bandage.
+bandage,remote,Select the object immediately to the right of the bandage.
+bandage,can,Select the second object to the right of the bandage.
+bandage,candle,Select the third object to the right of the bandage.
+bandage,box,Select the fourth object to the right of the bandage.
+bandage,book,Select the fifth object to the right of the bandage.
+bandage,cup,Select the sixth object to the right of the bandage.
+remote,bottle,Select the second object to the left of the remote.
+remote,bandage,Select the object immediately to the left of the remote.
+remote,can,Select the object immediately to the right of the remote.
+remote,candle,Select the second object to the right of the remote.
+remote,box,Select the third object to the right of the remote.
+remote,book,Select the fourth object to the right of the remote.
+remote,cup,Select the fifth object to the right of the remote.
+can,bottle,Select the third object to the left of the can.
+can,bandage,Select the second object to the left of the can.
+can,remote,Select the object immediately to the left of the can.
+can,candle,Select the object immediately to the right of the can.
+can,box,Select the second object to the right of the can.
+can,book,Select the third object to the right of the can.
+can,cup,Select the fourth object to the right of the can.
+candle,bottle,Select the fourth object to the left of the candle.
+candle,bandage,Select the third object to the left of the candle.
+candle,remote,Select the second object to the left of the candle.
+candle,can,Select the object immediately to the left of the candle.
+candle,box,Select the object immediately to the right of the candle.
+candle,book,Select the second object to the right of the candle.
+candle,cup,Select the third object to the right of the candle.
+box,bottle,Select the fifth object to the left of the box.
+box,bandage,Select the fourth object to the left of the box.
+box,remote,Select the third object to the left of the box.
+box,can,Select the second object to the left of the box.
+box,candle,Select the object immediately to the left of the box.
+box,book,Select the object immediately to the right of the box.
+box,cup,Select the second object to the right of the box.
+book,bottle,Select the sixth object to the left of the book.
+book,bandage,Select the fifth object to the left of the book.
+book,remote,Select the fourth object to the left of the book.
+book,can,Select the third object to the left of the book.
+book,candle,Select the second object to the left of the book.
+book,box,Select the object immediately to the left of the book.
+book,cup,Select the object immediately to the right of the book.
+cup,bottle,Select the seventh object to the left of the cup.
+cup,bandage,Select the sixth object to the left of the cup.
+cup,remote,Select the fifth object to the left of the cup.
+cup,can,Select the fourth object to the left of the cup.
+cup,candle,Select the third object to the left of the cup.
+cup,box,Select the second object to the left of the cup.
+cup,book,Select the object immediately to the left of the cup.

@@ -4,13 +4,13 @@ import pandas as pd
 def generate_sentence(objects: list, ref: str, target: str) -> str:
     assert ref != target, 'ref cannot be the same as target'
     options = {
-        1: 'Select the object to the <DIRECTION> of <REF_OBJECT>.',
-        2: 'Select the second object to the <DIRECTION> of <REF_OBJECT>.',
-        3: 'Select the third object to the <DIRECTION> of <REF_OBJECT>.',
-        4: 'Select the fourth object to the <DIRECTION> of <REF_OBJECT>.',
-        5: 'Select the fifth object to the <DIRECTION> of <REF_OBJECT>.',
-        6: 'Select the sixth object to the <DIRECTION> of <REF_OBJECT>.',
-        7: 'Select the seventh object to the <DIRECTION> of <REF_OBJECT>.'
+        1: 'Select the object immediately to the <DIRECTION> of the <REF_OBJECT>.',
+        2: 'Select the second object to the <DIRECTION> of the <REF_OBJECT>.',
+        3: 'Select the third object to the <DIRECTION> of the <REF_OBJECT>.',
+        4: 'Select the fourth object to the <DIRECTION> of the <REF_OBJECT>.',
+        5: 'Select the fifth object to the <DIRECTION> of the <REF_OBJECT>.',
+        6: 'Select the sixth object to the <DIRECTION> of the <REF_OBJECT>.',
+        7: 'Select the seventh object to the <DIRECTION> of the <REF_OBJECT>.'
     }
     
     ref_id = objects.index(ref)
@@ -27,14 +27,14 @@ def generate_sentence(objects: list, ref: str, target: str) -> str:
 
 # Example usage
 objects = [
-    "red-cup",
-    "white-gauze",
-    "plastic-tube",
-    "tin-box", 
-    "red-candle", 
-    "medicine-box",
-    "blue-book", 
-    "black-cup"
+    "bottle",
+    "bandage",
+    "remote",
+    "can", 
+    "candle", 
+    "box",
+    "book", 
+    "cup"
 ]
 
 df = []
