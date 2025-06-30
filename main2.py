@@ -10,7 +10,7 @@ import logging
 from utils import perf_sleep
 from psychopy import sound, visual, prefs
 prefs.hardware['audioLib'] = ['PTB']
-prefs.hardware['audioDevice'] = 'Speakers / Headphones (Realtek Audio)'
+prefs.hardware['audioDevice'] = 'OUT 3-4 (BEHRINGER X-AIR)'
 
 
 from typing import List
@@ -21,7 +21,7 @@ class StimController:
     def __init__(self):
         self.codebooks = []
         self.n_objs = 8
-        self.obj_names = ['red-cup', 'white-gauze', 'plastic-tube', 'tin-box', 'red-candle', 'medicine-box', 'blue-book', 'black-cup']
+        self.obj_names = ['bottle', 'bandage', 'remote', 'can', 'candle', 'box', 'book', 'cup']
         
         # Mode
         self.mode = 'screen'
@@ -51,16 +51,13 @@ class StimController:
         self.cue_duration = 6
         self.trial_duration = 12 # Except condition 1 where it is 24 seconds
         self.trial_rest_duration = 3
-        self.trial_duration = 12 # Except condition 1 where it is 24 seconds
-        self.trial_rest_duration = 1
         self.n_trials = self.n_objs
 
         self.run_rest_duration = 30
-        self.run_rest_duration = 1
         self.n_runs = 8
         self.n_blocks = 4
-        self.block_rest_duration = 300
-        self.block_rest_duration = 1
+        # self.block_rest_duration = 300
+        self.block_rest_duration = 30
         self.obj_order = np.arange(self.n_objs)
         self.obj_orders = {}
         
@@ -74,15 +71,36 @@ class StimController:
 
         # Screen condition (condition 4)
         self.win = visual.Window(size=(1920, 1080), winType='pyglet', fullscr=True, screen=1, units="pix", color='grey', waitBlanking=True, allowGUI=True)
+        self.width, self.height = self.win.size
+        
 
-        # Create a box on top left
-        width, height = self.win.size
-        box_size = 100
-
+        # Create flicker boxes
         self.boxes = []
-        self.boxes.append(visual.Rect(self.win, width=100, height=100, pos=(-width / 2, height / 2), color='red'))
-        for i in range(8):
-            self.boxes.append(visual.Rect(self.win, width=box_size, height=box_size, pos=(150*i - height/2, 0)))
+        # Create a box on top left of screen for vsync sensor
+        self.boxes.append(visual.Rect(self.win, width=100, height=100, pos=(-self.width / 2, self.height / 2), color='red')) # For the vsync sensor
+
+        # Boxes behind pictograms
+        box_size = 200
+        space = (self.width - box_size * 8) // 9
+        poss = [(space + i*(box_size + space) - self.width // 2 + box_size / 2, 0) for i in range(self.n_objs)] # Psychopy decided that positions are determined as the center of the objects
+        for i in range(self.n_objs):
+            self.boxes.append(visual.Rect(self.win, width=box_size, height=box_size, pos=poss[i], units='pix'))
+
+        # Pictorgrams on top of boxes
+        self.pictograms = []
+        self.img_paths = ['bottle', 'bandage', 'remote', 'can', 'candle', 'box', 'book', 'cup']
+        for i, img_path in enumerate(self.img_paths):
+            self.pictograms.append(visual.ImageStim(self.win, f'./icons/{img_path}.png', mask=None, units='pix', pos=poss[i], size=box_size / 1.5))
+        
+        for pictogram in self.pictograms:
+            pictogram.setAutoDraw(True)
+
+        for box, pictogram in zip(self.boxes, self.pictograms):
+            box.draw()
+            self.win.flip()
+
+
+
     
     def connect_teensy(self) -> None:
         try:
@@ -180,20 +198,41 @@ class StimController:
 
     def cue_audio(self, ref_obj: str, target_obj: str):
         """Cue audio before a trial"""
-        audio = sound.Sound(f'./tts/queries/output_{ref_obj}2{target_obj}.wav')
-        audio.play(loops=100)
+        audio = sound.Sound(f'./tts/queries/psychopy/output_{ref_obj}2{target_obj}.mp3')
 
         while True:
-            try:
-                x = self.button_box.readline().decode()
-                if len(x):
-                    audio.stop()
-                    break
-            except:
-                continue
-        # wait 2 to 4 seconds
-        perf_sleep(np.random.choice(20, 40)[0] / 10)
+            # Play the audio
+            self.marker_outlet.push_sample(['audio_start'])
+            audio.play()
+            start_time = time.perf_counter()
+            duration = audio.getDuration()
 
+            # Monitor button input during audio playback
+            while time.perf_counter() - start_time < duration:
+                try:
+                    x = self.button_box.readline().decode()
+                    if len(x):
+                        self.marker_outlet.push_sample(['button_press'])
+                        audio.stop()
+                        self.marker_outlet.push_sample(['audio_stop'])
+                        perf_sleep(np.random.randint(30, 41, 1) / 10)  # wait 3 to 4 seconds
+                        return x
+                except:
+                    continue
+
+            # 5-second pause between playbacks, still checking for input
+            end_time = time.perf_counter() + 3
+            while time.perf_counter() < end_time:
+                try:
+                    x = self.button_box.readline().decode()
+                    if len(x):
+                        self.marker_outlet.push_sample(['button_press'])
+                        audio.stop()
+                        self.marker_outlet.push_sample(['audio_stop'])
+                        perf_sleep(np.random.randint(30, 41, 1) / 10)  # wait 3 to 4 seconds
+                        return x
+                except:
+                    continue
 
     def run_sequence(self, sequence: list):
         """Run a single sequence"""
@@ -208,7 +247,7 @@ class StimController:
         while time.perf_counter() <= end_time:
             pass
         
-        # Turn off the lasers
+        # Turn off the lasers for conditions other than c-VEP
         if self.sequence_off_duration != 0:
             end_time = time.perf_counter() + self.sequence_off_duration
             if self.mode == 'scene':
@@ -253,6 +292,7 @@ class StimController:
             ref_obj_idx = np.random.choice(obj_order, 1, p=(obj_order != target_obj_idx) / (obj_order != target_obj_idx).sum())[0]
             ref_obj = self.obj_names[ref_obj_idx]
             print(f'Target obj: {target_obj}, ref_obj: {ref_obj}')
+            self.marker_outlet.push_sample([f'Target obj: {target_obj}, ref_obj: {ref_obj}'])
             self.cue_audio(ref_obj, target_obj)
 
             trial_start_time = time.perf_counter()
@@ -272,10 +312,9 @@ class StimController:
         """Run a block with multiple runs"""
         # Randomize conditions
         conditions = np.random.permutation(self.conditions)
-        conditions = [2, 3, 1, 0]
         conditions = np.repeat(conditions, 2)
 
-        self.post_marker(f"Block condition order: {conditions}") # Save conditions to marker
+        self.post_marker(f"Block conditions order: {conditions}") # Save conditions to marker
         assert len(conditions) == self.n_runs, 'n_runs and n conditions do not match!'
 
         self.post_marker('Block start')
@@ -286,21 +325,40 @@ class StimController:
                 controller.load_codebooks_block_1()
                 controller.sequence_on_duration = 0.1
                 controller.sequence_off_duration = 0.15
+
+                # Reset
+                self.send_laser_values([0] * 8)
+                self.flip_boxes([0] * 8)
             elif condition == 1:
                 self.mode = 'scene'
                 controller.load_codebooks_block_2()
                 controller.sequence_on_duration = 0.1
                 controller.sequence_off_duration = 0.15
+
+                # Reset
+                self.send_laser_values([0] * 8)
+                self.flip_boxes([0] * 8)
             elif condition == 2:
                 self.mode = 'scene'
                 controller.load_codebooks_block_3()
-                controller.sequence_on_duration = 1/63
+                controller.sequence_on_duration = 1/60
                 controller.sequence_off_duration = 0
+
+                # Reset
+                self.send_laser_values([0] * 8)
+                self.flip_boxes([0] * 8)
             else:
                 self.mode = 'screen'
                 controller.load_codebooks_block_2()
                 controller.sequence_on_duration = 0.1
                 controller.sequence_off_duration = 0.15
+                # controller.load_codebooks_block_3()
+                # controller.sequence_on_duration = 1 / 60
+                # controller.sequence_off_duration = 0
+                
+                # Reset
+                self.send_laser_values([0] * 8)
+                self.flip_boxes([0] * 8)
             
             self.post_marker('Run Rest')
             perf_sleep(self.run_rest_duration)
@@ -322,11 +380,13 @@ class StimController:
     def run_test(self):
         """Run a test sequence"""
         self.load_codebooks_block_3()
+        controller.sequence_on_duration = 1 / 60
+        controller.sequence_off_duration = 1 / 60
         self.post_marker('Test start')
-        while True:
+        for i in range(1000):
             try:
+                # self.run_trial(self.codebooks[0])
                 self.run_sequence([1] * 8)
-                self.run_sequence([0] * 8)
             except KeyboardInterrupt:
                 self.run_sequence([0] * 8)
                 break
@@ -341,6 +401,15 @@ class StimController:
             box.draw()
         self.win.flip()
 
+    def test_audio(self):
+        while True:
+            ref_objs = np.random.choice(self.obj_names, 2)
+
+            target_objs = np.random.choice([i for i in self.obj_names if i not in ref_objs], 2)
+            for ref_obj in ref_objs:
+                for target_obj in target_objs:
+                    self.cue_audio(ref_obj, target_obj)
+
 if __name__ == "__main__":
     # Set logging filename to ./logs/log_%Y-%m-%d_%H-%M-%S.log
     filename = datetime.datetime.now().strftime('./logs/log_%Y-%m-%d_%H-%M-%S.log')
@@ -353,14 +422,22 @@ if __name__ == "__main__":
     # port = 'COM7'  # Windows
     # port = '/dev/tty.usbmodem156466901' # Mac
     controller = StimController()
-    controller.mode = 'screen'
+    controller.mode = 'scene'
     test = False
     print('TEST:', test)
     # Start experiment
-    kw = input('Start run? y/n\n')
+    kw = input('Start run? y/n?\n')
     
     if kw == 'y':
-        if test:
-            controller.run_test()
-        else:
-            controller.run_session()
+        try:
+            if test:
+                # controller.test_audio()
+                while True:
+                    controller.run_test()
+                    # controller.test_audio()
+                    controller.run_test()
+            else:
+                controller.run_session()
+        except KeyboardInterrupt:
+            controller.send_laser_values([0] * 8)
+            controller.win.close()
