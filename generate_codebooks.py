@@ -118,6 +118,25 @@ def generate_single_trial(n_reps=12) -> np.ndarray:
 
 
 def main():
+    # Condition 1
+    for i in range(8):
+        codebook = np.repeat(np.eye(8), 12, axis=1)
+        idc = np.random.permutation(np.arange(8)) # randomly shift rows
+        codebook = codebook[idc]
+
+        # Save stimulus as image
+        plt.figure(figsize=(10, 7))
+        plt.imshow(codebook)
+        plt.tight_layout()
+        plt.savefig(f'./images/codebook_condition_1/codebook_obj_{i}.png', format='png')
+        plt.clf()
+        plt.cla()
+        plt.close()
+
+        # Save stimulus as npy file
+        np.save(f'./codebooks/condition_1/codebook_obj_{i}.npy', codebook)
+
+    # Condition 2
     for i in range(8):
         trial_stim = generate_single_trial()
         
@@ -125,13 +144,13 @@ def main():
         plt.figure(figsize=(10, 7))
         plt.imshow(trial_stim)
         plt.tight_layout()
-        plt.savefig(f'./images/codebook_obj_{i}.png', format='png')
+        plt.savefig(f'./images/condition_2/codebook_obj_{i}.png', format='png')
         plt.clf()
         plt.cla()
         plt.close()
         
         # Save stimulus as npy file
-        np.save(f'./codebooks/codebook_obj_{i}.npy', trial_stim)
+        np.save(f'./codebooks/condition_2/codebook_obj_{i}.npy', trial_stim)
 
 
 main()
