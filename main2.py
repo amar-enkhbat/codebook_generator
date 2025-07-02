@@ -9,16 +9,10 @@ from pylsl import StreamInfo, StreamOutlet, resolve_streams
 import logging
 from utils import perf_sleep
 from psychopy import sound, visual, prefs
-# prefs.hardware['audioLib'] = ['PTB']
+import psychtoolbox as ptb
+prefs.hardware['audioLib'] = ['PTB']
 # prefs.hardware['audioDevice'] = 'OUT 3-4 (BEHRINGER X-AIR)'
-# prefs.hardware['audioDevice'] = 'Speakers (Realtek(R) Audio)'
-
-import psutil, os
-p = psutil.Process(os.getpid())
-p.nice(psutil.HIGH_PRIORITY_CLASS)
-
-
-from typing import List
+prefs.hardware['audioDevice'] = 'Speakers (Realtek(R) Audio)'
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +54,6 @@ class StimController:
         self.cvep_sequence_on_duration = 1 / 60
         self.cvep_sequence_off_duration = 0
         self.cvep_sequence_duration = self.cvep_sequence_on_duration + self.cvep_sequence_off_duration
-        self.cue_duration = 6
         
         # Screen settings
         self.refresh_rate = 60
@@ -73,23 +66,18 @@ class StimController:
         n_trial_rest_frames = int(self.trial_rest_duration // self.refresh_rate)
 
         # Experiment global settings
-        self.run_rest_duration = 30
+        self.run_rest_duration = 1
         self.n_runs = 8
         self.n_blocks = 4
-        self.block_rest_duration = 30
+        self.block_rest_duration = 1
         self.obj_order = np.arange(self.n_objs)
         self.obj_orders = {}
-        
-        # Exeriment vars
-        self.trial_num = 1
-        self.run_num = 1
-        self.block_num = 1
 
         # Number of conditions
         self.conditions = np.arange(self.n_blocks)
 
         # Screen condition (condition 4)
-        self.win = visual.Window(size=(1920, 1080), winType='pyglet', fullscr=True, screen=1, units="pix", color='grey', waitBlanking=True, allowGUI=True)
+        self.win = visual.Window(size=(1920, 1080), fullscr=True, screen=2, units="pix", color='grey', waitBlanking=True, allowGUI=True)
         self.width, self.height = self.win.size
         
 
@@ -97,27 +85,26 @@ class StimController:
         self.boxes = []
         # Create a box on top left of screen for vsync sensor
         sensor_box_size = 400
-        self.boxes.append(visual.Rect(self.win, width=sensor_box_size, height=sensor_box_size, pos=(-self.width / 2, self.height / 2), color='black')) # For the vsync sensor
+        sensor_box = visual.Rect(self.win, width=sensor_box_size, height=sensor_box_size, pos=(-self.width / 2, self.height / 2), color='black')
+        sensor_box.setAutoDraw(False)
+        self.boxes.append(sensor_box) # For the vsync sensor
 
         # Boxes behind pictograms
         box_size = 200
         space = (self.width - box_size * 8) // 9
         poss = [(space + i*(box_size + space) - self.width // 2 + box_size / 2, 0) for i in range(self.n_objs)] # Psychopy decided that positions are determined as the center of the objects
         for i in range(self.n_objs):
-            self.boxes.append(visual.Rect(self.win, width=box_size, height=box_size, pos=poss[i], units='pix', color='black'))
+            box = visual.Rect(self.win, width=box_size, height=box_size, pos=poss[i], units='pix', color='black')
+            box.setAutoDraw(False)
+            self.boxes.append(box)
 
-        # # Pictograms on top of boxes
-        # self.pictograms = []
-        # self.img_paths = ['bottle', 'bandage', 'remote', 'can', 'candle', 'box', 'book', 'cup']
-        # for i, img_path in enumerate(self.img_paths):
-        #     self.pictograms.append(visual.ImageStim(self.win, f'./icons/{img_path}.png', mask=None, units='pix', pos=poss[i], size=box_size / 1.5))
-        
-        # # for pictogram in self.pictograms:
-        # #     pictogram.setAutoDraw(True)
-
-        # for box, pictogram in zip(self.boxes, self.pictograms):
-        #     box.draw()
-        #     self.win.flip()
+        # Pictograms on top of boxes
+        self.pictograms = []
+        self.img_paths = ['bottle', 'bandage', 'remote', 'can', 'candle', 'box', 'book', 'cup']
+        for i, img_path in enumerate(self.img_paths):
+            pictogram = visual.ImageStim(self.win, f'./icons/{img_path}.png', mask=None, units='pix', pos=poss[i], size=box_size / 1.5)
+            pictogram.setAutoDraw(False)
+            self.pictograms.append(pictogram)
     
     def connect_teensy(self) -> None:
         try:
@@ -250,11 +237,71 @@ class StimController:
                 except:
                     continue
 
+    def cue_audio_single(self, ref_obj: str, target_obj: str):
+        """Cue audio before a trial"""
+        audio = sound.Sound(f'./tts/queries/psychopy/output_{ref_obj}2{target_obj}.mp3')
+
+        audio.play()
+        start_time = time.perf_counter()
+        duration = audio.getDuration() + 2
+
+        # Monitor button input during audio playback
+        while time.perf_counter() - start_time < duration:
+            pass
+    
+    def fill_boxes(self, sequence: np.ndarray):
+        for val, box in zip(sequence, self.boxes[1:]):
+            box.fillColor = 'white' if val == 1 else 'black'
+
+    def fill_sensor_box(self, color: str):
+        self.boxes[0].fillColor = color
+
+    def draw_boxes(self):
+        for box in self.boxes:
+            box.draw()
+
+    def draw_pictograms(self):
+        for pictogram in self.pictograms:
+            pictogram.draw()
+
+    def turn_off_screen(self):
+        self.win.color = 'black'
+        self.win.flip()
+        self.win.clearBuffer()
+        self.win.flip()
+        # self.fill_boxes([0] * 8)
+        # self.fill_sensor_box('black')
+        # self.draw_boxes()
+        # self.win.color = 'black'
+        # self.win.flip()
+
+    def turn_on_screen(self):
+        self.win.color = 'gray'
+        self.win.flip()
+        self.fill_boxes([0] * 8)
+        self.fill_sensor_box('black')
+        self.draw_boxes()
+        self.draw_pictograms()
+        self.win.flip()
+
     def run_sequence(self, sequence: list):
         """Run a single sequence"""
         # Turn on the Lasers
+        end_time = time.perf_counter() + self.erp_sequence_on_duration
         self.send_laser_values(sequence)
         self.post_sequence(sequence)
+        # Wait until turn on duration is over
+        while time.perf_counter() <= end_time:
+            pass
+        
+        # Turn off the lasers
+        if self.erp_sequence_off_duration != 0:
+            end_time = time.perf_counter() + self.erp_sequence_off_duration
+            self.send_laser_values([0] * 8)
+            self.post_sequence([0] * 8)
+            # Wait until turn off duration is over
+            while time.perf_counter() < end_time:
+                pass
         
     def run_trial(self, codebook: list):
         """Run a single trial with multiple sequences"""
@@ -271,12 +318,19 @@ class StimController:
 
     def run_trial_screen(self, codebook: list):
         """Run a single trial with multiple sequences on monitor"""
+        for _ in range(60):  # 1 second of flips at 60Hz
+            self.fill_sensor_box('black')
+            self.fill_boxes([0] * 8)
+            self.draw_boxes()
+            self.draw_pictograms()
+            self.win.flip()
         self.post_marker('Trial start')
         for sequence in codebook:
             for i in range(self.n_erp_stim_on_frames):
                 self.fill_sensor_box('white')
                 self.fill_boxes(sequence)
                 self.draw_boxes()
+                self.draw_pictograms()
                 self.win.flip()
                 if i == 0:
                     self.post_sequence(sequence)
@@ -284,6 +338,7 @@ class StimController:
                 self.fill_sensor_box('black')
                 self.fill_boxes([0] * 8)
                 self.draw_boxes()
+                self.draw_pictograms()
                 self.win.flip()
                 if i == 0:
                     self.post_sequence([0] * 8)
@@ -297,7 +352,8 @@ class StimController:
         self.post_marker(f"Objects order: {obj_order}") # Save order objects to marker
         self.post_marker('Run start')
 
-        for trial_num in range(len(obj_order)):
+        # for trial_num in range(len(obj_order)):
+        for trial_num in range(1):
             codebook = codebooks[trial_num]
             target_obj_idx = obj_order[trial_num]
             
@@ -307,7 +363,8 @@ class StimController:
 
             self.post_marker(f'Target obj: {target_obj}, ref_obj: {ref_obj}')
             self.post_marker('Audio start')
-            self.cue_audio(ref_obj, target_obj)
+            # self.cue_audio(ref_obj, target_obj)
+            self.cue_audio_single(ref_obj, target_obj)
             self.post_marker('Audio end')
 
             trial_start_time = time.perf_counter()
@@ -323,37 +380,41 @@ class StimController:
             while time.perf_counter() <= rest_end_time:
                 pass
         self.post_marker('Run end')
-        self.trial_num = 1
-        self.run_num = self.run_num + 1
                 
     def run_block(self):
         """Run a block with multiple runs"""
         # Randomize conditions
         conditions = np.random.permutation(self.conditions)
         conditions = np.repeat(conditions, 2)
+        print(conditions)
+        conditions = np.array([0, 1, 2, 3])
 
         self.post_marker(f"Block conditions order: {conditions}") # Save conditions to marker
-        assert len(conditions) == self.n_runs, 'n_runs and n_conditions do not match!'
+        # assert len(conditions) == self.n_runs, 'n_runs and n_conditions do not match!'
 
         self.post_marker('Block start')
         for condition in conditions:
             # Load codebooks depending on condition
             if condition == 0:
+                self.turn_off_screen()
                 self.mode = 'scene'
                 self.load_codebooks_block_1()
                 self.erp_sequence_on_duration = 0.1
                 self.erp_sequence_off_duration = 0.15
             elif condition == 1:
+                self.turn_off_screen()
                 self.mode = 'scene'
                 self.load_codebooks_block_2()
                 self.erp_sequence_on_duration = 0.1
                 self.erp_sequence_off_duration = 0.15
             elif condition == 2:
+                self.turn_off_screen()
                 self.mode = 'scene'
                 self.load_codebooks_block_3()
                 self.erp_sequence_on_duration = 1/60
                 self.erp_sequence_off_duration = 0
             else:
+                self.turn_on_screen()
                 self.mode = 'screen'
                 self.load_codebooks_block_2()
                 self.erp_sequence_on_duration = 0.1
@@ -372,6 +433,13 @@ class StimController:
         self.post_marker('Block end')
         
     def run_session(self):
+        # Init sensor
+        self.fill_sensor_box('black')
+        self.fill_boxes([0] * 8)
+        self.draw_boxes()
+        self.win.flip()
+        if input('Have you initialized the vsync sensor? y/n?\n') != 'y':
+            exit()
         # Start ERP condition 1
         for i in range(self.n_blocks):
             self.run_block()
@@ -392,16 +460,7 @@ class StimController:
                 break
         self.post_marker('Test end')
 
-    def fill_boxes(self, sequence: np.ndarray):
-        for val, box in zip(sequence, self.boxes[1:]):
-            box.fillColor = 'white' if val == 1 else 'black'
-
-    def fill_sensor_box(self, color: str):
-        self.boxes[0].fillColor = color
-
-    def draw_boxes(self):
-        for box in self.boxes:
-            box.draw()
+    
 
     def test_audio(self):
         while True:
@@ -417,6 +476,13 @@ class StimController:
         self.load_codebooks_block_1()
         self.erp_sequence_on_duration = 0.1
         self.erp_sequence_off_duration = 0.15
+
+        for _ in range(60):
+            self.turn_on_screen()
+            self.turn_off_screen()
+
+        self.turn_on_screen()
+
         for i in range(100):
             self.fill_sensor_box('white')
             self.fill_boxes([1] * 8)
@@ -428,12 +494,11 @@ class StimController:
             self.win.flip()
         # perf_sleep(1)
         for _ in range(60):  # 1 second of flips at 60Hz
-            self.fill_sensor_box('gray')
-            self.fill_boxes([1] * 8)
+            self.fill_sensor_box('black')
+            self.fill_boxes([0] * 8)
             self.draw_boxes()
+            self.draw_pictograms()
             self.win.flip()
-
-
         self.run_trial_screen(self.codebooks[0])
 
 
@@ -446,13 +511,12 @@ if __name__ == "__main__":
         level=logging.INFO, 
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
-    logging.disable(logging.CRITICAL)
     # port = 'COM7'  # Windows
     # port = '/dev/tty.usbmodem156466901' # Mac
     controller = StimController()
     controller.mode = 'screen'
     controller.win.recordFrameIntervals = True
-    test = True
+    test = False
     print('TEST:', test)
     # Start experiment
     kw = input('Start run? y/n?\n')
@@ -460,18 +524,18 @@ if __name__ == "__main__":
     if kw == 'y':
         try:
             if test:
-                # controller.test_audio()
-                # while True:
-                #     controller.run_test()
                 controller.screen_timing_test()
                 print("Avg frame interval:", np.mean(controller.win.frameIntervals))
                 print("Max frame interval:", np.max(controller.win.frameIntervals))
                 print("Dropped frames:", sum(np.array(controller.win.frameIntervals) > 1.5 * (1/controller.refresh_rate)))
                 print("Actual refresh rate:", controller.win.getActualFrameRate())
-
-
             else:
                 controller.run_session()
+                print("Avg frame interval:", np.mean(controller.win.frameIntervals))
+                print("Max frame interval:", np.max(controller.win.frameIntervals))
+                print("Dropped frames:", sum(np.array(controller.win.frameIntervals) > 1.5 * (1/controller.refresh_rate)))
+                print("Actual refresh rate:", controller.win.getActualFrameRate())
         except KeyboardInterrupt:
             controller.send_laser_values([0] * 8)
             controller.win.close()
+            print('Experiment interrupted. Gracefully closed.')
