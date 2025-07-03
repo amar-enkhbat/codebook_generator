@@ -1,18 +1,18 @@
-import os
 import glob
-import psutil
 import serial
 import time
 import datetime
 import numpy as np
-from pylsl import StreamInfo, StreamOutlet, resolve_streams
+import matplotlib.pyplot as plt
+import seaborn as sns
+from pylsl import StreamInfo, StreamOutlet
 import logging
 from utils import perf_sleep
 from psychopy import sound, visual, prefs
-import psychtoolbox as ptb
 prefs.hardware['audioLib'] = ['PTB']
 # prefs.hardware['audioDevice'] = 'OUT 3-4 (BEHRINGER X-AIR)'
 prefs.hardware['audioDevice'] = 'Speakers (Realtek(R) Audio)'
+prefs.hardware['audioDevice'] = 'Speakers (High Definition Audio Device)'
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,8 @@ class StimController:
         self.init_marker_lsl_stream()
 
         self.trial_duration = 12 # Except condition 1 where it is 24 seconds
-        self.trial_rest_duration = 3
+        self.trial_rest_duration = 2
+        self.trial_screen_warmup_duration = 1
         self.n_trials = self.n_objs
 
         # Experimental setup for ERP
@@ -75,9 +76,10 @@ class StimController:
 
         # Number of conditions
         self.conditions = np.arange(self.n_blocks)
+        self.n_cond_repeats = 2
 
         # Screen condition (condition 4)
-        self.win = visual.Window(size=(1920, 1080), fullscr=True, screen=2, units="pix", color='grey', waitBlanking=True, allowGUI=True)
+        self.win = visual.Window(size=(1920, 1080), fullscr=True, screen=0, units="pix", color='grey', waitBlanking=True, allowGUI=True)
         self.width, self.height = self.win.size
         
 
@@ -146,7 +148,6 @@ class StimController:
         # Wait until turn on duration is over
         while time.perf_counter() <= end_time:
             pass
-
     
     def load_codebook(self, filepath: str) -> np.ndarray:
         codebook = np.load(filepath).T
@@ -236,7 +237,7 @@ class StimController:
                         return x
                 except:
                     continue
-
+    
     def cue_audio_single(self, ref_obj: str, target_obj: str):
         """Cue audio before a trial"""
         audio = sound.Sound(f'./tts/queries/psychopy/output_{ref_obj}2{target_obj}.mp3')
@@ -244,6 +245,18 @@ class StimController:
         audio.play()
         start_time = time.perf_counter()
         duration = audio.getDuration() + 2
+
+        # Monitor button input during audio playback
+        while time.perf_counter() - start_time < duration:
+            pass
+        
+    def play_decription_audio(self):
+        """Cue audio before a trial"""
+        audio = sound.Sound(f'./tts/queries/psychopy/description_{self.mode}.mp3')
+
+        audio.play()
+        start_time = time.perf_counter()
+        duration = audio.getDuration() + 1
 
         # Monitor button input during audio playback
         while time.perf_counter() - start_time < duration:
@@ -269,11 +282,6 @@ class StimController:
         self.win.flip()
         self.win.clearBuffer()
         self.win.flip()
-        # self.fill_boxes([0] * 8)
-        # self.fill_sensor_box('black')
-        # self.draw_boxes()
-        # self.win.color = 'black'
-        # self.win.flip()
 
     def turn_on_screen(self):
         self.win.color = 'gray'
@@ -316,14 +324,22 @@ class StimController:
         # Reset
         self.send_laser_values([0] * 8)
 
-    def run_trial_screen(self, codebook: list):
-        """Run a single trial with multiple sequences on monitor"""
-        for _ in range(60):  # 1 second of flips at 60Hz
+    def screen_warmup(self):
+        """Flip screen at refresh rate for dt seconds to warmup.
+
+        Args:
+            dt (float): warmup duration (seconds)
+        """
+        for _ in range(int(self.trial_screen_warmup_duration * self.refresh_rate)):  # 1 second of flips at 60Hz
             self.fill_sensor_box('black')
             self.fill_boxes([0] * 8)
             self.draw_boxes()
             self.draw_pictograms()
             self.win.flip()
+        
+    def run_trial_screen(self, codebook: list):
+        """Run a single trial with multiple sequences on monitor"""
+        self.screen_warmup(1)
         self.post_marker('Trial start')
         for sequence in codebook:
             for i in range(self.n_erp_stim_on_frames):
@@ -385,13 +401,10 @@ class StimController:
         """Run a block with multiple runs"""
         # Randomize conditions
         conditions = np.random.permutation(self.conditions)
-        conditions = np.repeat(conditions, 2)
-        print(conditions)
         conditions = np.array([0, 1, 2, 3])
-
-        self.post_marker(f"Block conditions order: {conditions}") # Save conditions to marker
-        # assert len(conditions) == self.n_runs, 'n_runs and n_conditions do not match!'
-
+        self.post_marker(f"Conditions order: {conditions}") # Save conditions to marker
+        print(conditions)
+        
         self.post_marker('Block start')
         for condition in conditions:
             # Load codebooks depending on condition
@@ -425,9 +438,11 @@ class StimController:
             
             self.post_marker('Run Rest')
             perf_sleep(self.run_rest_duration)
-                
+
+            self.play_decription_audio()
             run_start_time = time.perf_counter()
-            self.run_run()
+            for i in range(self.n_cond_repeats):
+                self.run_run()
             dt = time.perf_counter() - run_start_time
             logging.info(f'Run duration: {dt // 60} mins {dt % 60} secs {dt * 1000} ms')
         self.post_marker('Block end')
@@ -515,7 +530,7 @@ if __name__ == "__main__":
     # port = '/dev/tty.usbmodem156466901' # Mac
     controller = StimController()
     controller.mode = 'screen'
-    controller.win.recordFrameIntervals = True
+    
     test = False
     print('TEST:', test)
     # Start experiment
@@ -524,17 +539,17 @@ if __name__ == "__main__":
     if kw == 'y':
         try:
             if test:
+                controller.win.recordFrameIntervals = True
                 controller.screen_timing_test()
                 print("Avg frame interval:", np.mean(controller.win.frameIntervals))
                 print("Max frame interval:", np.max(controller.win.frameIntervals))
                 print("Dropped frames:", sum(np.array(controller.win.frameIntervals) > 1.5 * (1/controller.refresh_rate)))
+                sns.boxplot(controller.win.frameIntervals)
+                plt.show()
                 print("Actual refresh rate:", controller.win.getActualFrameRate())
+                
             else:
                 controller.run_session()
-                print("Avg frame interval:", np.mean(controller.win.frameIntervals))
-                print("Max frame interval:", np.max(controller.win.frameIntervals))
-                print("Dropped frames:", sum(np.array(controller.win.frameIntervals) > 1.5 * (1/controller.refresh_rate)))
-                print("Actual refresh rate:", controller.win.getActualFrameRate())
         except KeyboardInterrupt:
             controller.send_laser_values([0] * 8)
             controller.win.close()
