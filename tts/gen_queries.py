@@ -8,7 +8,7 @@ Condition 2: Next! Third object left of the bottle on the table. To select it, g
 
 def generate_sentence(objects: list, ref: str, target: str, condition: str) -> str:
     assert ref != target, 'ref cannot be the same as target'
-    cond1_options = {
+    scene_options = {
         1: 'Next! First object <DIRECTION> of the <REF_OBJECT> on the table. To select it, gaze at the object directly.',
         2: 'Next! Second object <DIRECTION> of the <REF_OBJECT> on the table. To select it, gaze at the object directly.',
         3: 'Next! Third object <DIRECTION> of the <REF_OBJECT> on the table. To select it, gaze at the object directly.',
@@ -18,7 +18,7 @@ def generate_sentence(objects: list, ref: str, target: str, condition: str) -> s
         7: 'Next! Seventh object <DIRECTION> of the <REF_OBJECT> on the table. To select it, gaze at the object directly.'
     }
     
-    cond2_options = {
+    screen_options = {
         1: 'Next! First object <DIRECTION> of the <REF_OBJECT> on the table. To select it, gaze at its pictogram.',
         2: 'Next! Second object <DIRECTION> of the <REF_OBJECT> on the table. To select it, gaze at its pictogram.',
         3: 'Next! Third object <DIRECTION> of the <REF_OBJECT> on the table. To select it, gaze at its pictogram.',
@@ -35,10 +35,10 @@ def generate_sentence(objects: list, ref: str, target: str, condition: str) -> s
     dist = abs(target_id - ref_id)
     
     # Generate cue for condition 1
-    if condition == 'cond_1':
-        sentence = cond1_options[dist]
-    elif condition == 'cond_2':
-        sentence = cond2_options[dist]
+    if condition == 'scene':
+        sentence = scene_options[dist]
+    elif condition == 'screen':
+        sentence = screen_options[dist]
     else:
         raise ValueError
     
@@ -59,7 +59,7 @@ objects = [
     "book", 
     "cup"
 ]
-conditions = ['cond_1', 'cond_2']
+conditions = ['scene', 'screen']
 
 df = []
 for condition in conditions:

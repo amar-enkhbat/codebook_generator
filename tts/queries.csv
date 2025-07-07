@@ -1,113 +1,113 @@
 ref,target,sentence,condition
-bottle,bandage,"Next! First object right of the bottle on the table. To select it, gaze at the object directly.",cond_1
-bottle,remote,"Next! Second object right of the bottle on the table. To select it, gaze at the object directly.",cond_1
-bottle,can,"Next! Third object right of the bottle on the table. To select it, gaze at the object directly.",cond_1
-bottle,candle,"Next! Fourth object right of the bottle on the table. To select it, gaze at the object directly.",cond_1
-bottle,box,"Next! Fifth object right of the bottle on the table. To select it, gaze at the object directly.",cond_1
-bottle,book,"Next! Sixth object right of the bottle on the table. To select it, gaze at the object directly.",cond_1
-bottle,cup,"Next! Seventh object right of the bottle on the table. To select it, gaze at the object directly.",cond_1
-bandage,bottle,"Next! First object left of the bandage on the table. To select it, gaze at the object directly.",cond_1
-bandage,remote,"Next! First object right of the bandage on the table. To select it, gaze at the object directly.",cond_1
-bandage,can,"Next! Second object right of the bandage on the table. To select it, gaze at the object directly.",cond_1
-bandage,candle,"Next! Third object right of the bandage on the table. To select it, gaze at the object directly.",cond_1
-bandage,box,"Next! Fourth object right of the bandage on the table. To select it, gaze at the object directly.",cond_1
-bandage,book,"Next! Fifth object right of the bandage on the table. To select it, gaze at the object directly.",cond_1
-bandage,cup,"Next! Sixth object right of the bandage on the table. To select it, gaze at the object directly.",cond_1
-remote,bottle,"Next! Second object left of the remote on the table. To select it, gaze at the object directly.",cond_1
-remote,bandage,"Next! First object left of the remote on the table. To select it, gaze at the object directly.",cond_1
-remote,can,"Next! First object right of the remote on the table. To select it, gaze at the object directly.",cond_1
-remote,candle,"Next! Second object right of the remote on the table. To select it, gaze at the object directly.",cond_1
-remote,box,"Next! Third object right of the remote on the table. To select it, gaze at the object directly.",cond_1
-remote,book,"Next! Fourth object right of the remote on the table. To select it, gaze at the object directly.",cond_1
-remote,cup,"Next! Fifth object right of the remote on the table. To select it, gaze at the object directly.",cond_1
-can,bottle,"Next! Third object left of the can on the table. To select it, gaze at the object directly.",cond_1
-can,bandage,"Next! Second object left of the can on the table. To select it, gaze at the object directly.",cond_1
-can,remote,"Next! First object left of the can on the table. To select it, gaze at the object directly.",cond_1
-can,candle,"Next! First object right of the can on the table. To select it, gaze at the object directly.",cond_1
-can,box,"Next! Second object right of the can on the table. To select it, gaze at the object directly.",cond_1
-can,book,"Next! Third object right of the can on the table. To select it, gaze at the object directly.",cond_1
-can,cup,"Next! Fourth object right of the can on the table. To select it, gaze at the object directly.",cond_1
-candle,bottle,"Next! Fourth object left of the candle on the table. To select it, gaze at the object directly.",cond_1
-candle,bandage,"Next! Third object left of the candle on the table. To select it, gaze at the object directly.",cond_1
-candle,remote,"Next! Second object left of the candle on the table. To select it, gaze at the object directly.",cond_1
-candle,can,"Next! First object left of the candle on the table. To select it, gaze at the object directly.",cond_1
-candle,box,"Next! First object right of the candle on the table. To select it, gaze at the object directly.",cond_1
-candle,book,"Next! Second object right of the candle on the table. To select it, gaze at the object directly.",cond_1
-candle,cup,"Next! Third object right of the candle on the table. To select it, gaze at the object directly.",cond_1
-box,bottle,"Next! Fifth object left of the box on the table. To select it, gaze at the object directly.",cond_1
-box,bandage,"Next! Fourth object left of the box on the table. To select it, gaze at the object directly.",cond_1
-box,remote,"Next! Third object left of the box on the table. To select it, gaze at the object directly.",cond_1
-box,can,"Next! Second object left of the box on the table. To select it, gaze at the object directly.",cond_1
-box,candle,"Next! First object left of the box on the table. To select it, gaze at the object directly.",cond_1
-box,book,"Next! First object right of the box on the table. To select it, gaze at the object directly.",cond_1
-box,cup,"Next! Second object right of the box on the table. To select it, gaze at the object directly.",cond_1
-book,bottle,"Next! Sixth object left of the book on the table. To select it, gaze at the object directly.",cond_1
-book,bandage,"Next! Fifth object left of the book on the table. To select it, gaze at the object directly.",cond_1
-book,remote,"Next! Fourth object left of the book on the table. To select it, gaze at the object directly.",cond_1
-book,can,"Next! Third object left of the book on the table. To select it, gaze at the object directly.",cond_1
-book,candle,"Next! Second object left of the book on the table. To select it, gaze at the object directly.",cond_1
-book,box,"Next! First object left of the book on the table. To select it, gaze at the object directly.",cond_1
-book,cup,"Next! First object right of the book on the table. To select it, gaze at the object directly.",cond_1
-cup,bottle,"Next! Seventh object left of the cup on the table. To select it, gaze at the object directly.",cond_1
-cup,bandage,"Next! Sixth object left of the cup on the table. To select it, gaze at the object directly.",cond_1
-cup,remote,"Next! Fifth object left of the cup on the table. To select it, gaze at the object directly.",cond_1
-cup,can,"Next! Fourth object left of the cup on the table. To select it, gaze at the object directly.",cond_1
-cup,candle,"Next! Third object left of the cup on the table. To select it, gaze at the object directly.",cond_1
-cup,box,"Next! Second object left of the cup on the table. To select it, gaze at the object directly.",cond_1
-cup,book,"Next! First object left of the cup on the table. To select it, gaze at the object directly.",cond_1
-bottle,bandage,"Next! First object right of the bottle on the table. To select it, gaze at its pictogram.",cond_2
-bottle,remote,"Next! Second object right of the bottle on the table. To select it, gaze at its pictogram.",cond_2
-bottle,can,"Next! Third object right of the bottle on the table. To select it, gaze at its pictogram.",cond_2
-bottle,candle,"Next! Fourth object right of the bottle on the table. To select it, gaze at its pictogram.",cond_2
-bottle,box,"Next! Fifth object right of the bottle on the table. To select it, gaze at its pictogram.",cond_2
-bottle,book,"Next! Sixth object right of the bottle on the table. To select it, gaze at its pictogram.",cond_2
-bottle,cup,"Next! Seventh object right of the bottle on the table. To select it, gaze at its pictogram.",cond_2
-bandage,bottle,"Next! First object left of the bandage on the table. To select it, gaze at its pictogram.",cond_2
-bandage,remote,"Next! First object right of the bandage on the table. To select it, gaze at its pictogram.",cond_2
-bandage,can,"Next! Second object right of the bandage on the table. To select it, gaze at its pictogram.",cond_2
-bandage,candle,"Next! Third object right of the bandage on the table. To select it, gaze at its pictogram.",cond_2
-bandage,box,"Next! Fourth object right of the bandage on the table. To select it, gaze at its pictogram.",cond_2
-bandage,book,"Next! Fifth object right of the bandage on the table. To select it, gaze at its pictogram.",cond_2
-bandage,cup,"Next! Sixth object right of the bandage on the table. To select it, gaze at its pictogram.",cond_2
-remote,bottle,"Next! Second object left of the remote on the table. To select it, gaze at its pictogram.",cond_2
-remote,bandage,"Next! First object left of the remote on the table. To select it, gaze at its pictogram.",cond_2
-remote,can,"Next! First object right of the remote on the table. To select it, gaze at its pictogram.",cond_2
-remote,candle,"Next! Second object right of the remote on the table. To select it, gaze at its pictogram.",cond_2
-remote,box,"Next! Third object right of the remote on the table. To select it, gaze at its pictogram.",cond_2
-remote,book,"Next! Fourth object right of the remote on the table. To select it, gaze at its pictogram.",cond_2
-remote,cup,"Next! Fifth object right of the remote on the table. To select it, gaze at its pictogram.",cond_2
-can,bottle,"Next! Third object left of the can on the table. To select it, gaze at its pictogram.",cond_2
-can,bandage,"Next! Second object left of the can on the table. To select it, gaze at its pictogram.",cond_2
-can,remote,"Next! First object left of the can on the table. To select it, gaze at its pictogram.",cond_2
-can,candle,"Next! First object right of the can on the table. To select it, gaze at its pictogram.",cond_2
-can,box,"Next! Second object right of the can on the table. To select it, gaze at its pictogram.",cond_2
-can,book,"Next! Third object right of the can on the table. To select it, gaze at its pictogram.",cond_2
-can,cup,"Next! Fourth object right of the can on the table. To select it, gaze at its pictogram.",cond_2
-candle,bottle,"Next! Fourth object left of the candle on the table. To select it, gaze at its pictogram.",cond_2
-candle,bandage,"Next! Third object left of the candle on the table. To select it, gaze at its pictogram.",cond_2
-candle,remote,"Next! Second object left of the candle on the table. To select it, gaze at its pictogram.",cond_2
-candle,can,"Next! First object left of the candle on the table. To select it, gaze at its pictogram.",cond_2
-candle,box,"Next! First object right of the candle on the table. To select it, gaze at its pictogram.",cond_2
-candle,book,"Next! Second object right of the candle on the table. To select it, gaze at its pictogram.",cond_2
-candle,cup,"Next! Third object right of the candle on the table. To select it, gaze at its pictogram.",cond_2
-box,bottle,"Next! Fifth object left of the box on the table. To select it, gaze at its pictogram.",cond_2
-box,bandage,"Next! Fourth object left of the box on the table. To select it, gaze at its pictogram.",cond_2
-box,remote,"Next! Third object left of the box on the table. To select it, gaze at its pictogram.",cond_2
-box,can,"Next! Second object left of the box on the table. To select it, gaze at its pictogram.",cond_2
-box,candle,"Next! First object left of the box on the table. To select it, gaze at its pictogram.",cond_2
-box,book,"Next! First object right of the box on the table. To select it, gaze at its pictogram.",cond_2
-box,cup,"Next! Second object right of the box on the table. To select it, gaze at its pictogram.",cond_2
-book,bottle,"Next! Sixth object left of the book on the table. To select it, gaze at its pictogram.",cond_2
-book,bandage,"Next! Fifth object left of the book on the table. To select it, gaze at its pictogram.",cond_2
-book,remote,"Next! Fourth object left of the book on the table. To select it, gaze at its pictogram.",cond_2
-book,can,"Next! Third object left of the book on the table. To select it, gaze at its pictogram.",cond_2
-book,candle,"Next! Second object left of the book on the table. To select it, gaze at its pictogram.",cond_2
-book,box,"Next! First object left of the book on the table. To select it, gaze at its pictogram.",cond_2
-book,cup,"Next! First object right of the book on the table. To select it, gaze at its pictogram.",cond_2
-cup,bottle,"Next! Seventh object left of the cup on the table. To select it, gaze at its pictogram.",cond_2
-cup,bandage,"Next! Sixth object left of the cup on the table. To select it, gaze at its pictogram.",cond_2
-cup,remote,"Next! Fifth object left of the cup on the table. To select it, gaze at its pictogram.",cond_2
-cup,can,"Next! Fourth object left of the cup on the table. To select it, gaze at its pictogram.",cond_2
-cup,candle,"Next! Third object left of the cup on the table. To select it, gaze at its pictogram.",cond_2
-cup,box,"Next! Second object left of the cup on the table. To select it, gaze at its pictogram.",cond_2
-cup,book,"Next! First object left of the cup on the table. To select it, gaze at its pictogram.",cond_2
+bottle,bandage,"Next! First object right of the bottle on the table. To select it, gaze at the object directly.",scene
+bottle,remote,"Next! Second object right of the bottle on the table. To select it, gaze at the object directly.",scene
+bottle,can,"Next! Third object right of the bottle on the table. To select it, gaze at the object directly.",scene
+bottle,candle,"Next! Fourth object right of the bottle on the table. To select it, gaze at the object directly.",scene
+bottle,box,"Next! Fifth object right of the bottle on the table. To select it, gaze at the object directly.",scene
+bottle,book,"Next! Sixth object right of the bottle on the table. To select it, gaze at the object directly.",scene
+bottle,cup,"Next! Seventh object right of the bottle on the table. To select it, gaze at the object directly.",scene
+bandage,bottle,"Next! First object left of the bandage on the table. To select it, gaze at the object directly.",scene
+bandage,remote,"Next! First object right of the bandage on the table. To select it, gaze at the object directly.",scene
+bandage,can,"Next! Second object right of the bandage on the table. To select it, gaze at the object directly.",scene
+bandage,candle,"Next! Third object right of the bandage on the table. To select it, gaze at the object directly.",scene
+bandage,box,"Next! Fourth object right of the bandage on the table. To select it, gaze at the object directly.",scene
+bandage,book,"Next! Fifth object right of the bandage on the table. To select it, gaze at the object directly.",scene
+bandage,cup,"Next! Sixth object right of the bandage on the table. To select it, gaze at the object directly.",scene
+remote,bottle,"Next! Second object left of the remote on the table. To select it, gaze at the object directly.",scene
+remote,bandage,"Next! First object left of the remote on the table. To select it, gaze at the object directly.",scene
+remote,can,"Next! First object right of the remote on the table. To select it, gaze at the object directly.",scene
+remote,candle,"Next! Second object right of the remote on the table. To select it, gaze at the object directly.",scene
+remote,box,"Next! Third object right of the remote on the table. To select it, gaze at the object directly.",scene
+remote,book,"Next! Fourth object right of the remote on the table. To select it, gaze at the object directly.",scene
+remote,cup,"Next! Fifth object right of the remote on the table. To select it, gaze at the object directly.",scene
+can,bottle,"Next! Third object left of the can on the table. To select it, gaze at the object directly.",scene
+can,bandage,"Next! Second object left of the can on the table. To select it, gaze at the object directly.",scene
+can,remote,"Next! First object left of the can on the table. To select it, gaze at the object directly.",scene
+can,candle,"Next! First object right of the can on the table. To select it, gaze at the object directly.",scene
+can,box,"Next! Second object right of the can on the table. To select it, gaze at the object directly.",scene
+can,book,"Next! Third object right of the can on the table. To select it, gaze at the object directly.",scene
+can,cup,"Next! Fourth object right of the can on the table. To select it, gaze at the object directly.",scene
+candle,bottle,"Next! Fourth object left of the candle on the table. To select it, gaze at the object directly.",scene
+candle,bandage,"Next! Third object left of the candle on the table. To select it, gaze at the object directly.",scene
+candle,remote,"Next! Second object left of the candle on the table. To select it, gaze at the object directly.",scene
+candle,can,"Next! First object left of the candle on the table. To select it, gaze at the object directly.",scene
+candle,box,"Next! First object right of the candle on the table. To select it, gaze at the object directly.",scene
+candle,book,"Next! Second object right of the candle on the table. To select it, gaze at the object directly.",scene
+candle,cup,"Next! Third object right of the candle on the table. To select it, gaze at the object directly.",scene
+box,bottle,"Next! Fifth object left of the box on the table. To select it, gaze at the object directly.",scene
+box,bandage,"Next! Fourth object left of the box on the table. To select it, gaze at the object directly.",scene
+box,remote,"Next! Third object left of the box on the table. To select it, gaze at the object directly.",scene
+box,can,"Next! Second object left of the box on the table. To select it, gaze at the object directly.",scene
+box,candle,"Next! First object left of the box on the table. To select it, gaze at the object directly.",scene
+box,book,"Next! First object right of the box on the table. To select it, gaze at the object directly.",scene
+box,cup,"Next! Second object right of the box on the table. To select it, gaze at the object directly.",scene
+book,bottle,"Next! Sixth object left of the book on the table. To select it, gaze at the object directly.",scene
+book,bandage,"Next! Fifth object left of the book on the table. To select it, gaze at the object directly.",scene
+book,remote,"Next! Fourth object left of the book on the table. To select it, gaze at the object directly.",scene
+book,can,"Next! Third object left of the book on the table. To select it, gaze at the object directly.",scene
+book,candle,"Next! Second object left of the book on the table. To select it, gaze at the object directly.",scene
+book,box,"Next! First object left of the book on the table. To select it, gaze at the object directly.",scene
+book,cup,"Next! First object right of the book on the table. To select it, gaze at the object directly.",scene
+cup,bottle,"Next! Seventh object left of the cup on the table. To select it, gaze at the object directly.",scene
+cup,bandage,"Next! Sixth object left of the cup on the table. To select it, gaze at the object directly.",scene
+cup,remote,"Next! Fifth object left of the cup on the table. To select it, gaze at the object directly.",scene
+cup,can,"Next! Fourth object left of the cup on the table. To select it, gaze at the object directly.",scene
+cup,candle,"Next! Third object left of the cup on the table. To select it, gaze at the object directly.",scene
+cup,box,"Next! Second object left of the cup on the table. To select it, gaze at the object directly.",scene
+cup,book,"Next! First object left of the cup on the table. To select it, gaze at the object directly.",scene
+bottle,bandage,"Next! First object right of the bottle on the table. To select it, gaze at its pictogram.",screen
+bottle,remote,"Next! Second object right of the bottle on the table. To select it, gaze at its pictogram.",screen
+bottle,can,"Next! Third object right of the bottle on the table. To select it, gaze at its pictogram.",screen
+bottle,candle,"Next! Fourth object right of the bottle on the table. To select it, gaze at its pictogram.",screen
+bottle,box,"Next! Fifth object right of the bottle on the table. To select it, gaze at its pictogram.",screen
+bottle,book,"Next! Sixth object right of the bottle on the table. To select it, gaze at its pictogram.",screen
+bottle,cup,"Next! Seventh object right of the bottle on the table. To select it, gaze at its pictogram.",screen
+bandage,bottle,"Next! First object left of the bandage on the table. To select it, gaze at its pictogram.",screen
+bandage,remote,"Next! First object right of the bandage on the table. To select it, gaze at its pictogram.",screen
+bandage,can,"Next! Second object right of the bandage on the table. To select it, gaze at its pictogram.",screen
+bandage,candle,"Next! Third object right of the bandage on the table. To select it, gaze at its pictogram.",screen
+bandage,box,"Next! Fourth object right of the bandage on the table. To select it, gaze at its pictogram.",screen
+bandage,book,"Next! Fifth object right of the bandage on the table. To select it, gaze at its pictogram.",screen
+bandage,cup,"Next! Sixth object right of the bandage on the table. To select it, gaze at its pictogram.",screen
+remote,bottle,"Next! Second object left of the remote on the table. To select it, gaze at its pictogram.",screen
+remote,bandage,"Next! First object left of the remote on the table. To select it, gaze at its pictogram.",screen
+remote,can,"Next! First object right of the remote on the table. To select it, gaze at its pictogram.",screen
+remote,candle,"Next! Second object right of the remote on the table. To select it, gaze at its pictogram.",screen
+remote,box,"Next! Third object right of the remote on the table. To select it, gaze at its pictogram.",screen
+remote,book,"Next! Fourth object right of the remote on the table. To select it, gaze at its pictogram.",screen
+remote,cup,"Next! Fifth object right of the remote on the table. To select it, gaze at its pictogram.",screen
+can,bottle,"Next! Third object left of the can on the table. To select it, gaze at its pictogram.",screen
+can,bandage,"Next! Second object left of the can on the table. To select it, gaze at its pictogram.",screen
+can,remote,"Next! First object left of the can on the table. To select it, gaze at its pictogram.",screen
+can,candle,"Next! First object right of the can on the table. To select it, gaze at its pictogram.",screen
+can,box,"Next! Second object right of the can on the table. To select it, gaze at its pictogram.",screen
+can,book,"Next! Third object right of the can on the table. To select it, gaze at its pictogram.",screen
+can,cup,"Next! Fourth object right of the can on the table. To select it, gaze at its pictogram.",screen
+candle,bottle,"Next! Fourth object left of the candle on the table. To select it, gaze at its pictogram.",screen
+candle,bandage,"Next! Third object left of the candle on the table. To select it, gaze at its pictogram.",screen
+candle,remote,"Next! Second object left of the candle on the table. To select it, gaze at its pictogram.",screen
+candle,can,"Next! First object left of the candle on the table. To select it, gaze at its pictogram.",screen
+candle,box,"Next! First object right of the candle on the table. To select it, gaze at its pictogram.",screen
+candle,book,"Next! Second object right of the candle on the table. To select it, gaze at its pictogram.",screen
+candle,cup,"Next! Third object right of the candle on the table. To select it, gaze at its pictogram.",screen
+box,bottle,"Next! Fifth object left of the box on the table. To select it, gaze at its pictogram.",screen
+box,bandage,"Next! Fourth object left of the box on the table. To select it, gaze at its pictogram.",screen
+box,remote,"Next! Third object left of the box on the table. To select it, gaze at its pictogram.",screen
+box,can,"Next! Second object left of the box on the table. To select it, gaze at its pictogram.",screen
+box,candle,"Next! First object left of the box on the table. To select it, gaze at its pictogram.",screen
+box,book,"Next! First object right of the box on the table. To select it, gaze at its pictogram.",screen
+box,cup,"Next! Second object right of the box on the table. To select it, gaze at its pictogram.",screen
+book,bottle,"Next! Sixth object left of the book on the table. To select it, gaze at its pictogram.",screen
+book,bandage,"Next! Fifth object left of the book on the table. To select it, gaze at its pictogram.",screen
+book,remote,"Next! Fourth object left of the book on the table. To select it, gaze at its pictogram.",screen
+book,can,"Next! Third object left of the book on the table. To select it, gaze at its pictogram.",screen
+book,candle,"Next! Second object left of the book on the table. To select it, gaze at its pictogram.",screen
+book,box,"Next! First object left of the book on the table. To select it, gaze at its pictogram.",screen
+book,cup,"Next! First object right of the book on the table. To select it, gaze at its pictogram.",screen
+cup,bottle,"Next! Seventh object left of the cup on the table. To select it, gaze at its pictogram.",screen
+cup,bandage,"Next! Sixth object left of the cup on the table. To select it, gaze at its pictogram.",screen
+cup,remote,"Next! Fifth object left of the cup on the table. To select it, gaze at its pictogram.",screen
+cup,can,"Next! Fourth object left of the cup on the table. To select it, gaze at its pictogram.",screen
+cup,candle,"Next! Third object left of the cup on the table. To select it, gaze at its pictogram.",screen
+cup,box,"Next! Second object left of the cup on the table. To select it, gaze at its pictogram.",screen
+cup,book,"Next! First object left of the cup on the table. To select it, gaze at its pictogram.",screen
