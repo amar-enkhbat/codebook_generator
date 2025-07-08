@@ -93,6 +93,9 @@ class StimController:
         self.init_boxes()
         self.pictogram_poss = [(self.space + i*(self.box_size + self.space) - self.width // 2 + self.box_size / 2, 0) for i in range(self.n_objs)] # Psychopy decided that positions are determined as the center of the objects
         self.init_pictograms()
+
+        # Init description text on screen
+        self.init_text()
         
     def init_boxes(self):
         self.boxes = []
@@ -108,6 +111,16 @@ class StimController:
             pictogram = visual.ImageStim(self.win, f'./icons/{img_path}.png', mask=None, units='pix', pos=self.pictogram_poss[i], size=self.box_size)
             pictogram.setAutoDraw(False)
             self.pictograms.append(pictogram)
+
+    def init_text(self):
+        self.description_text = visual.TextStim(self.win, text="Hello World", pos=(0, 0), color='white', height=50)
+        self.description_text.setAutoDraw(False)
+
+    def fill_text(self, text: str):
+        self.description_text.setText(text)
+    
+    def draw_text(self):
+        self.description_text.draw()
     
     def connect_teensy(self) -> None:
         try:
@@ -313,8 +326,10 @@ class StimController:
         self.win.flip()
         self.fill_boxes([0] * 8)
         self.fill_sensor_box('black')
+        self.fill_text("")
         self.draw_boxes()
         self.draw_pictograms()
+        self.draw_text()
         self.win.flip()
 
     def run_sequence(self, sequence: list):
@@ -491,7 +506,7 @@ class StimController:
                 self.post_marker(f'New boxes/pictogram order: {new_idc}')
             
             _ = input(f'Start block num: {i}. Press any key to continue:\n')
-            self.run_block()
+            # self.run_block()
             perf_sleep(self.block_rest_duration)
             
             # Return pictograms to original order
@@ -502,6 +517,13 @@ class StimController:
                 self.pictogram_poss = [self.pictogram_poss[i] for i in prev_idc]
                 self.init_pictograms()
                 self.win.flip()
+
+        self.fill_text('You have successfully completed the experiment!')
+        self.description_text.setHeight(60)
+        self.draw_text()
+        self.win.flip()
+        if input('End the experiment? y/n\n') == 'y':
+            exit()
 
     def screen_timing_test(self):
         self.mode = 'screen'
@@ -606,6 +628,29 @@ class StimController:
 
             if input('Continue familiarization? y/n\n') != 'y':
                 break
+    
+    def resting_state_recording(self):
+        self.fill_text('.')
+        self.description_text.setHeight(200)
+        self.draw_text()
+        self.win.flip()
+        if input('Start eyes open recording? y/n\n') == 'y':
+            self.post_marker('Start eyes open')
+            perf_sleep(150)
+            self.post_marker('End eyes open')
+
+        if input('Start eyes closed recording? y/n\n') == 'y':
+            self.post_marker('Start eyes closed')
+            perf_sleep(150)
+            self.post_marker('End eyes closed')
+
+        self.fill_text('Resting state recording finished')
+        self.description_text.setHeight(50)
+        self.draw_text()
+        self.win.flip()
+        
+
+
 
 
 
@@ -625,19 +670,32 @@ if __name__ == "__main__":
     
     # Initialize vsync sensor
     controller.turn_off_screen()
+    controller.fill_text('Initializing VSync Sensor.')
+    controller.draw_text()
+    controller.win.flip()
     if input('Have you initialized the vsync sensor? y/n?\n') != 'y':
         exit()
-    controller.turn_on_screen()
+
     # Start experiment
+    controller.fill_text('Initializing Speakers.')
+    controller.draw_text()
+    controller.win.flip()
     controller.select_speakers()
+
     # Testing phase
     controller.screen_timing_test()
     if input('Continue? y/n\n') != 'y':
         exit()
+
     # Familiarization phase
     print('#####################')
     print('Familiarization Phase.')
     controller.familiarization()
+
+    # Resting state recording
+    print('#####################')
+    print('Resting state recording Phase.')
+    controller.resting_state_recording()
     
     # Start experiment
     if input('Start experiment? y/n\n') == 'y':
