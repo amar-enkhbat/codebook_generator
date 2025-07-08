@@ -29,13 +29,8 @@ class StimController:
 
         # Connect to teensy
         self.connect_teensy()
-
-        # Connect button box
         self.connect_button_box()
-        
-        # Start marker stream
         self.init_sequence_lsl_stream()
-        # Start marker stream
         self.init_marker_lsl_stream()
 
         self.trial_duration = 12 # Except condition 1 where it is 24 seconds
@@ -58,7 +53,6 @@ class StimController:
         self.refresh_rate = 60
         self.n_erp_stim_on_frames = int(self.erp_sequence_on_duration * self.refresh_rate)
         self.n_erp_stim_off_frames = int(self.erp_sequence_off_duration * self.refresh_rate)
-
         self.n_cvep_stim_on_frames = int(self.cvep_sequence_on_duration * self.refresh_rate)
         self.n_cvep_stim_off_frames = int(self.cvep_sequence_off_duration * self.refresh_rate)
 
@@ -82,7 +76,7 @@ class StimController:
         self.n_cond_repeats = 2
 
         # Screen (condition 4)
-        self.win = visual.Window(size=(1920, 1080), fullscr=True, screen=0, units="pix", color='grey', waitBlanking=True, allowGUI=True)
+        self.win = visual.Window(size=(1920, 1080), fullscr=True, screen=2, units="pix", color='grey', waitBlanking=True, allowGUI=True)
         self.width, self.height = self.win.size
         
         # Create flicker boxes
@@ -282,7 +276,7 @@ class StimController:
         while time.perf_counter() - start_time < duration:
             pass
         
-    def play_decription_audio(self):
+    def play_description_audio(self):
         """Cue audio before a trial"""
         audio = sound.Sound(f'{self.cue_audio_path}/description_{self.mode}.mp3')
         audio.play()
@@ -391,6 +385,12 @@ class StimController:
                 if i == 0:
                     self.post_sequence([0] * 8)
         self.post_marker('Trial end')
+
+        # Reset boxes
+        self.fill_boxes([0] * 8)
+        self.draw_boxes()
+        self.draw_pictograms()
+        self.win.flip()
             
     def run_run(self):
         """Run a single run with multiple trials"""
@@ -409,7 +409,7 @@ class StimController:
             ref_obj_idx = np.random.choice(obj_order, 1, p=(obj_order != target_obj_idx) / (obj_order != target_obj_idx).sum())[0]
             ref_obj = self.obj_names[ref_obj_idx]
 
-            self.post_marker(f'Target obj: {target_obj}, ref_obj: {ref_obj}')
+            self.post_marker(f'Target id/obj: {target_obj_idx}_{target_obj}, ref_obj: {ref_obj_idx}_{ref_obj}')
             self.post_marker('Audio start')
             # self.cue_audio(ref_obj, target_obj)
             self.cue_audio_single(ref_obj, target_obj)
@@ -433,13 +433,14 @@ class StimController:
         """Run a block with multiple runs"""
         # Randomize conditions
         conditions = np.random.permutation(self.conditions)
-        conditions = np.array([4, 3])
+        conditions = np.array([4, 3, 2, 1, 0])
         self.post_marker(f"Conditions order: {conditions}") # Save conditions to marker
         print(conditions)
         
         self.post_marker('Block start')
         for condition in conditions:
             # Load codebooks depending on condition
+            self.post_marker(f'Condition: {condition}')
             if condition == 0:
                 self.turn_off_screen()
                 self.mode = 'scene'
@@ -452,7 +453,7 @@ class StimController:
                 self.load_codebooks_block_2()
             elif condition == 2:
                 self.turn_off_screen()
-                self.mode = 'screen'
+                self.mode = 'scene'
                 self.switch_protocol('cvep')
                 self.load_codebooks_block_3()
             elif condition == 3:
@@ -471,7 +472,7 @@ class StimController:
             self.post_marker('Run Rest')
             perf_sleep(self.run_rest_duration)
 
-            self.play_decription_audio()
+            # self.play_description_audio()
             run_start_time = time.perf_counter()
             for i in range(self.n_cond_repeats):
                 self.run_run()
@@ -485,17 +486,16 @@ class StimController:
             # Randomize positions of pictograms
             if self.mode == 'screen':
                 new_idc = np.random.permutation(np.arange(self.n_objs)).astype(int).tolist()
-                self.post_marker(f'New boxes/pictogram order: {new_idc}')
                 self.pictogram_poss = [self.pictogram_poss[i] for i in new_idc]
                 self.init_pictograms()
+                self.post_marker(f'New boxes/pictogram order: {new_idc}')
             
-            _ = input(f'Start block num: {i}. Press any key to continue:')
+            _ = input(f'Start block num: {i}. Press any key to continue:\n')
             self.run_block()
-            
             perf_sleep(self.block_rest_duration)
             
+            # Return pictograms to original order
             if self.mode == 'screen':
-                # Return pictograms to original order
                 prev_idc = [0] * len(new_idc)
                 for i, o in enumerate(new_idc):
                     prev_idc[o] = i
@@ -527,7 +527,7 @@ class StimController:
             self.win.flip()
 
         # Run 1 trial
-        self.run_trial_screen(self.codebooks[0])
+        self.run_trial_screen(self.codebooks[0], 0)
         
         # Log results
         n_dropped_frames = sum(np.array(self.win.frameIntervals) > 1.5 * (1/controller.refresh_rate))
@@ -546,11 +546,12 @@ class StimController:
     def select_speakers(self):
         # Set speakers
         prefs.hardware['audioLib'] = ['PTB'] if ['PTB'] in prefs.hardware['audioLib'] else prefs.hardware['audioLib'] # Most time accurate library according to psychopy docs
-        default_audio_devices = [
-            'OUT 3-4 (BEHRINGER X-AIR)',
-            'Speakers (Realtek(R) Audio)',
-            'Speakers (High Definition Audio Device)'
-        ]
+        # default_audio_devices = [
+        #     'OUT 3-4 (BEHRINGER X-AIR)',
+        #     'Speakers (Realtek(R) Audio)',
+        #     'Speakers (High Definition Audio Device)'
+        # ]
+
         while True:
             print("Available audio devices:\nFOR EXPERIMENT SELECT 'OUT 3-4 (BEHRINGER X-AIR)'\n")
             audio_devices = self.get_available_audio_devices()
@@ -564,6 +565,50 @@ class StimController:
             if input('Do the speakers work? y/n\n') == 'y':
                 break
 
+    def familiarization(self):
+        while True:
+            print('Conditions:')
+            print('0: scene/erp')
+            print('1: scene/erp')
+            print('2: scene/cvep')
+            print('3: screen/erp')
+            print('4: screen/cvep')
+            condition = int(input('Select condition: [0, 1, 2, 3, 4]\n'))
+            if condition == 0:
+                self.turn_off_screen()
+                self.mode = 'scene'
+                self.switch_protocol('erp')
+                self.load_codebooks_block_1()
+            elif condition == 1:
+                self.turn_off_screen()
+                self.mode = 'scene'
+                self.switch_protocol('erp')
+                self.load_codebooks_block_2()
+            elif condition == 2:
+                self.turn_off_screen()
+                self.mode = 'scene'
+                self.switch_protocol('cvep')
+                self.load_codebooks_block_3()
+            elif condition == 3:
+                self.turn_on_screen()
+                self.mode = 'screen'
+                self.switch_protocol('erp')
+                self.load_codebooks_block_2()
+            elif condition == 4:
+                self.turn_on_screen()
+                self.mode = 'screen'
+                self.switch_protocol('cvep')
+                self.load_codebooks_block_3()
+            else:
+                raise ValueError('Condition must be values between 0~4')
+            
+            self.run_run()
+
+            if input('Continue familiarization? y/n\n') != 'y':
+                break
+
+
+
 if __name__ == "__main__":
     # Set logging filename to ./logs/log_%Y-%m-%d_%H-%M-%S.log
     filename = datetime.datetime.now().strftime('./logs/log_%Y-%m-%d_%H-%M-%S.log')
@@ -574,22 +619,27 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
     controller = StimController()
+    prefs.hardware['audioDevice'] = 'Speakers (Realtek(R) Audio)'
     
     
     
-    # # Initialize vsync sensor
-    # controller.turn_off_screen()
-    # if input('Have you initialized the vsync sensor? y/n?\n') != 'y':
-    #     exit()
-    # controller.turn_on_screen()
-    # # Start experiment
-    # controller.select_speakers()
-    # # Testing phase
+    # Initialize vsync sensor
+    controller.turn_off_screen()
+    if input('Have you initialized the vsync sensor? y/n?\n') != 'y':
+        exit()
+    controller.turn_on_screen()
+    # Start experiment
+    controller.select_speakers()
+    # Testing phase
+    controller.screen_timing_test()
+    if input('Continue? y/n\n') != 'y':
+        exit()
+    # Familiarization phase
+    print('#####################')
+    print('Familiarization Phase.')
+    controller.familiarization()
     
-    # controller.screen_timing_test()
-    # if input('Continue? y/n\n') != 'y':
-    #     exit()
-    
+    # Start experiment
     if input('Start experiment? y/n\n') == 'y':
         try:
             controller.run_session()
