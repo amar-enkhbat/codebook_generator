@@ -66,7 +66,7 @@ class StimController:
         # Experiment global settings
         self.run_rest_duration = 10
         self.n_runs = 8
-        self.n_blocks = 4
+        self.n_blocks = 5
         self.block_rest_duration = 10
         self.obj_order = np.arange(self.n_objs)
         self.obj_orders = {}
@@ -76,13 +76,13 @@ class StimController:
         self.n_cond_repeats = 2
 
         # Screen (condition 4)
-        self.win = visual.Window(size=(1920, 1080), fullscr=True, screen=2, units="pix", color='grey', waitBlanking=True, allowGUI=True)
+        self.win = visual.Window(size=(1920, 1080), fullscr=True, screen=1, units="pix", color='grey', waitBlanking=True, allowGUI=True)
         self.width, self.height = self.win.size
         
         # Create flicker boxes
         # Create a box on top left of screen for vsync sensor
         
-        sensor_box_size = 400
+        sensor_box_size = 100
         self.sensor_box = visual.Rect(self.win, width=sensor_box_size, height=sensor_box_size, pos=(-self.width / 2, self.height / 2), color='black')
         self.sensor_box.setAutoDraw(False)
 
@@ -252,17 +252,20 @@ class StimController:
             start_time = time.perf_counter()
             duration = audio.getDuration()
 
+            # # Monitor button input during audio playback
+            # while time.perf_counter() - start_time < duration:
+            #     try:
+            #         x = self.button_box.readline().decode()
+            #         if len(x):
+            #             self.marker_outlet.push_sample(['button_press'])
+            #             audio.stop()
+            #             perf_sleep(np.random.randint(30, 41, 1) / 10)  # wait 3 to 4 seconds
+            #             return x
+            #     except:
+            #         continue
             # Monitor button input during audio playback
             while time.perf_counter() - start_time < duration:
-                try:
-                    x = self.button_box.readline().decode()
-                    if len(x):
-                        self.marker_outlet.push_sample(['button_press'])
-                        audio.stop()
-                        perf_sleep(np.random.randint(30, 41, 1) / 10)  # wait 3 to 4 seconds
-                        return x
-                except:
-                    continue
+                pass
 
             # 3-second pause between playbacks, still checking for input
             end_time = time.perf_counter() + 3
@@ -488,7 +491,8 @@ class StimController:
                 raise ValueError('Condition must be values between 0~4')
             
             self.post_marker('Run Rest')
-            perf_sleep(self.run_rest_duration)
+            # perf_sleep(self.run_rest_duration)
+            _ = input('Run finished continue? Press any key to continue.')
 
             # self.play_description_audio()
             run_start_time = time.perf_counter()
@@ -510,7 +514,7 @@ class StimController:
                 self.post_marker(f'New pictogram order: {new_idc}')
             
             # Start block
-            # _ = input(f'Start block num: {i}. Press any key to continue:\n')
+            _ = input(f'Start block num: {i}. Press any key to continue:\n')
             block_start_time = time.perf_counter()
             self.run_block()
             dt = time.perf_counter() - block_start_time
@@ -668,7 +672,10 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
     controller = StimController()
+    # while True:
+    #     controller.send_laser_values([1] * 8)
     # prefs.hardware['audioDevice'] = 'Speakers (Realtek(R) Audio)'
+    prefs.hardware['audioDevice'] = 'Speakers (High Definition Audio Device)'
     prefs.hardware['audioDevice'] = 'Speakers (High Definition Audio Device)'
     
     # # Initialize vsync sensor
@@ -679,20 +686,20 @@ if __name__ == "__main__":
     # if input('Have you initialized the vsync sensor? y/n?\n') != 'y':
     #     exit()
 
-    # # Start experiment
-    # controller.fill_text('Initializing Speakers.')
-    # controller.draw_text()
-    # controller.win.flip()
-    # controller.select_speakers()
+    # Start experiment
+    controller.fill_text('Initializing Speakers.')
+    controller.draw_text()
+    controller.win.flip()
+    controller.select_speakers()
 
     # # Testing phase
     # controller.screen_timing_test()
     # if input('Continue? y/n\n') != 'y':
     #     exit()
 
-    # # Familiarization phase
-    # print('#####################')
-    # print('Familiarization Phase.')
+    # Familiarization phase
+    print('#####################')
+    print('Familiarization Phase.')
     # controller.familiarization()
 
     # # Resting state recording
