@@ -179,15 +179,16 @@ class StimController:
         assert codebook.shape[1] == self.n_objs, f'Codebook shape should be (n_sequences, {self.n_objs}). Current shape: {codebook.shape}'
         return codebook
 
-    def load_codebooks_block_1(self, filepath: str='./codebooks/condition_1/codebook_1_henrich.npy') -> None:
+    def load_codebooks_block_1(self, path: str='./codebooks/condition_1') -> None:
         """Block 1 aka Henrich's codebook"""
         self.codebooks = []
-        codebook = self.load_codebook(filepath)
-        for _ in range(self.n_objs):
+        fpaths = sorted(glob.glob(f'{path}/codebook_obj_*.npy'))
+        for fpath in fpaths:
+            codebook = self.load_codebook(fpath)
             self.codebooks.append(codebook)
         self.codebooks = np.array(self.codebooks)
         logging.info(f'Codebooks loaded. shape: {np.array(self.codebooks).shape}')
-            
+        
     def load_codebooks_block_2(self, path: str='./codebooks/condition_2') -> None:
         """Block 2 aka custom codebook"""
         self.codebooks = []
@@ -359,7 +360,7 @@ class StimController:
             sequence_start_time = time.perf_counter()
             self.run_sequence(sequence)
             dt = time.perf_counter() - sequence_start_time
-            logging.info(f'Sequence duration: {dt // 60} mins {dt % 60} secs {(dt * 1000) } ms')
+            logging.info(f'{self.mode} sequence duration: {dt // 60} mins {dt % 60} secs {(dt * 1000) } ms')
         self.post_marker('Trial end')
 
         # Reset
@@ -383,6 +384,7 @@ class StimController:
         self.screen_warmup()
         self.post_marker('Trial start')
         for sequence in codebook:
+            sequence_start_time = time.perf_counter()
             for i in range(self.n_stim_on_frames):
                 self.fill_sensor_box('white' if sequence[target_obj_idx] == 1 else 'black')
                 self.fill_boxes(sequence)
@@ -399,6 +401,8 @@ class StimController:
                 self.win.flip()
                 if i == 0:
                     self.post_sequence([0] * 8)
+            dt = time.perf_counter() - sequence_start_time
+            logging.info(f'{self.mode} sequence duration: {dt // 60} mins {dt % 60} secs {(dt * 1000) } ms')
         self.post_marker('Trial end')
 
         # Reset boxes
@@ -415,8 +419,8 @@ class StimController:
         self.post_marker(f"Objects order: {obj_order}") # Save order objects to marker
         self.post_marker('Run start')
 
-        # for trial_num in range(len(obj_order)):
-        for trial_num in range(1):
+        for trial_num in range(len(obj_order)):
+        # for trial_num in range(1):
             codebook = codebooks[trial_num]
             target_obj_idx = obj_order[trial_num]
             
@@ -436,7 +440,7 @@ class StimController:
             elif self.mode == 'screen':
                 self.run_trial_screen(codebook, target_obj_idx)
             dt = time.perf_counter() - trial_start_time
-            logging.info(f'Trial duration: {dt // 60} mins {dt % 60} secs {dt * 1000} ms')
+            logging.info(f'{self.mode} trial duration: {dt // 60} mins {dt % 60} secs {dt * 1000} ms')
             # Rest for trial_rest_duration seconds
             rest_end_time = time.perf_counter() + self.trial_rest_duration
             self.post_marker('Trial Rest')
@@ -448,7 +452,6 @@ class StimController:
         """Run a block with multiple runs"""
         # Randomize conditions
         conditions = np.random.permutation(self.conditions)
-        conditions = np.array([4, 3, 2, 1, 0])
         self.post_marker(f"Conditions order: {conditions}") # Save conditions to marker
         print(conditions)
         
@@ -489,7 +492,7 @@ class StimController:
 
             # self.play_description_audio()
             run_start_time = time.perf_counter()
-            for i in range(self.n_cond_repeats):
+            for _ in range(self.n_cond_repeats):
                 self.run_run()
             dt = time.perf_counter() - run_start_time
             logging.info(f'Run duration: {dt // 60} mins {dt % 60} secs {dt * 1000} ms')
@@ -498,15 +501,20 @@ class StimController:
     def run_session(self):
         # Start ERP condition 1
         for i in range(self.n_blocks):
+        # for i in range(1):
             # Randomize positions of pictograms
             if self.mode == 'screen':
                 new_idc = np.random.permutation(np.arange(self.n_objs)).astype(int).tolist()
                 self.pictogram_poss = [self.pictogram_poss[i] for i in new_idc]
                 self.init_pictograms()
-                self.post_marker(f'New boxes/pictogram order: {new_idc}')
+                self.post_marker(f'New pictogram order: {new_idc}')
             
-            _ = input(f'Start block num: {i}. Press any key to continue:\n')
-            # self.run_block()
+            # Start block
+            # _ = input(f'Start block num: {i}. Press any key to continue:\n')
+            block_start_time = time.perf_counter()
+            self.run_block()
+            dt = time.perf_counter() - block_start_time
+            logging.info(f'Block duration: {dt // 60} mins {dt % 60} secs {dt * 1000} ms')
             perf_sleep(self.block_rest_duration)
             
             # Return pictograms to original order
@@ -518,7 +526,7 @@ class StimController:
                 self.init_pictograms()
                 self.win.flip()
 
-        self.fill_text('You have successfully completed the experiment!')
+        self.fill_text('Thank you! You have successfully completed the experiment!')
         self.description_text.setHeight(60)
         self.draw_text()
         self.win.flip()
@@ -650,10 +658,6 @@ class StimController:
         self.win.flip()
         
 
-
-
-
-
 if __name__ == "__main__":
     # Set logging filename to ./logs/log_%Y-%m-%d_%H-%M-%S.log
     filename = datetime.datetime.now().strftime('./logs/log_%Y-%m-%d_%H-%M-%S.log')
@@ -664,43 +668,46 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
     controller = StimController()
-    prefs.hardware['audioDevice'] = 'Speakers (Realtek(R) Audio)'
+    # prefs.hardware['audioDevice'] = 'Speakers (Realtek(R) Audio)'
+    prefs.hardware['audioDevice'] = 'Speakers (High Definition Audio Device)'
     
-    
-    
-    # Initialize vsync sensor
-    controller.turn_off_screen()
-    controller.fill_text('Initializing VSync Sensor.')
-    controller.draw_text()
-    controller.win.flip()
-    if input('Have you initialized the vsync sensor? y/n?\n') != 'y':
-        exit()
+    # # Initialize vsync sensor
+    # controller.turn_off_screen()
+    # controller.fill_text('Initializing VSync Sensor.')
+    # controller.draw_text()
+    # controller.win.flip()
+    # if input('Have you initialized the vsync sensor? y/n?\n') != 'y':
+    #     exit()
 
-    # Start experiment
-    controller.fill_text('Initializing Speakers.')
-    controller.draw_text()
-    controller.win.flip()
-    controller.select_speakers()
+    # # Start experiment
+    # controller.fill_text('Initializing Speakers.')
+    # controller.draw_text()
+    # controller.win.flip()
+    # controller.select_speakers()
 
-    # Testing phase
-    controller.screen_timing_test()
-    if input('Continue? y/n\n') != 'y':
-        exit()
+    # # Testing phase
+    # controller.screen_timing_test()
+    # if input('Continue? y/n\n') != 'y':
+    #     exit()
 
-    # Familiarization phase
-    print('#####################')
-    print('Familiarization Phase.')
-    controller.familiarization()
+    # # Familiarization phase
+    # print('#####################')
+    # print('Familiarization Phase.')
+    # controller.familiarization()
 
-    # Resting state recording
-    print('#####################')
-    print('Resting state recording Phase.')
-    controller.resting_state_recording()
+    # # Resting state recording
+    # print('#####################')
+    # print('Resting state recording Phase.')
+    # controller.resting_state_recording()
     
     # Start experiment
     if input('Start experiment? y/n\n') == 'y':
         try:
+            session_start_time = time.perf_counter()
             controller.run_session()
+            dt = time.perf_counter() - session_start_time
+            logging.info(f'Block duration: {dt // 60} mins {dt % 60} secs {dt * 1000} ms')
+            
         except KeyboardInterrupt:
             controller.send_laser_values([0] * 8)
             controller.win.close()
