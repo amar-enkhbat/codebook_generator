@@ -64,10 +64,10 @@ class StimController:
         self.sequence_off_duration = self.erp_sequence_off_duration
 
         # Experiment global settings
-        self.run_rest_duration = 1
+        self.run_rest_duration = 10
         self.n_runs = 8
         self.n_blocks = 4
-        self.block_rest_duration = 1
+        self.block_rest_duration = 10
         self.obj_order = np.arange(self.n_objs)
         self.obj_orders = {}
 
@@ -430,8 +430,8 @@ class StimController:
 
             self.post_marker(f'Target id/obj: {target_obj_idx}_{target_obj}, ref_obj: {ref_obj_idx}_{ref_obj}')
             self.post_marker('Audio start')
-            # self.cue_audio(ref_obj, target_obj)
-            self.cue_audio_single(ref_obj, target_obj)
+            self.cue_audio(ref_obj, target_obj)
+            # self.cue_audio_single(ref_obj, target_obj)
             self.post_marker('Audio end')
 
             trial_start_time = time.perf_counter()
