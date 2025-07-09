@@ -13,7 +13,7 @@ def main():
             print("Sensor ready!")
             break
         
-    info = pylsl.StreamInfo(name='ScreenSensorStream', type='Marker', channel_count=1, channel_format=6, nominal_srate=0)
+    info = pylsl.StreamInfo(name='ScreenSensorStream', type='Marker', channel_count=1, channel_format=6, nominal_srate=0, source_id='screen_sensor_stream')
     sensor_outlet = pylsl.StreamOutlet(info)
 
     while True:
