@@ -81,8 +81,7 @@ class StimController:
         
         # Create flicker boxes
         # Create a box on top left of screen for vsync sensor
-        
-        sensor_box_size = 100
+        sensor_box_size = 300
         self.sensor_box = visual.Rect(self.win, width=sensor_box_size, height=sensor_box_size, pos=(-self.width / 2, self.height / 2), color='black')
         self.sensor_box.setAutoDraw(False)
 
@@ -248,26 +247,26 @@ class StimController:
         start_time = time.perf_counter()
         duration = audio.getDuration()
         perf_sleep(duration)
+        
+        # 3-second pause between playbacks, checking for input
+        end_time = time.perf_counter() + 3
+        while time.perf_counter() < end_time:
+            try:
+                x = self.button_box.readline().decode()
+                if len(x):
+                    self.marker_outlet.push_sample(['button_press'])
+                    audio.stop()
+                    self.marker_outlet.push_sample(['audio_stop'])
+                    perf_sleep(np.random.randint(30, 41, 1) / 10)  # wait 3 to 4 seconds
+                    return x
+            except:
+                continue
 
         while True:
             # Play the audio
             audio.play()
             start_time = time.perf_counter()
             duration = audio.getDuration()
-
-            # 3-second pause between playbacks, checking for input
-            end_time = time.perf_counter() + 3
-            while time.perf_counter() < end_time:
-                try:
-                    x = self.button_box.readline().decode()
-                    if len(x):
-                        self.marker_outlet.push_sample(['button_press'])
-                        audio.stop()
-                        self.marker_outlet.push_sample(['audio_stop'])
-                        perf_sleep(np.random.randint(30, 41, 1) / 10)  # wait 3 to 4 seconds
-                        return x
-                except:
-                    continue
 
             # Monitor button input during audio playback
             while time.perf_counter() - start_time < duration:
@@ -326,7 +325,6 @@ class StimController:
     def fill_sensor_box(self, color: str):
         self.sensor_box.fillColor = color
 
-    
     def draw_boxes(self):
         for box in self.boxes:
             box.draw()
@@ -587,20 +585,19 @@ class StimController:
         logging.info(f"Dropped frames: {n_dropped_frames}")
         logging.info(f"Actual refresh rate: {self.win.getActualFrameRate()}")
         print(f'# of dropped frames: {n_dropped_frames}')
-        
         self.win.recordFrameIntervals = False
 
     def get_available_audio_devices(self):
         return list(tools.systemtools.getAudioDevices().keys())
-        
     
     def select_speakers(self):
         # Set speakers
         prefs.hardware['audioLib'] = ['PTB'] if ['PTB'] in prefs.hardware['audioLib'] else prefs.hardware['audioLib'] # Most time accurate library according to psychopy docs
+        
         # default_audio_devices = [
-        #     'OUT 3-4 (BEHRINGER X-AIR)',
-        #     'Speakers (Realtek(R) Audio)',
-        #     'Speakers (High Definition Audio Device)'
+        #     'OUT 3-4 (BEHRINGER X-AIR)', # For lab PC
+        #     'Speakers (Realtek(R) Audio)', # For Windows
+        #     'Speakers (High Definition Audio Device)' # For my mac
         # ]
 
         while True:
@@ -689,40 +686,48 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
     controller = StimController()
-    # prefs.hardware['audioDevice'] = 'Speakers (Realtek(R) Audio)'
-    prefs.hardware['audioDevice'] = 'Speakers (High Definition Audio Device)'
     
-    # # Initialize vsync sensor
-    # controller.turn_off_screen()
-    # controller.fill_text('Initializing VSync Sensor.')
-    # controller.draw_text()
-    # controller.win.flip()
-    # if input('Have you initialized the vsync sensor? y/n?\n') != 'y':
-    #     exit()
+    # Setup
+    ## Turn on lasers to until key press to setup lasers and objects
+    controller.send_laser_values([1] * 8)
+    if input('Finished setting up the lasers? y/n\n') != 'y':
+        exit()
+    controller.send_laser_values([0] * 8)
 
-    # # Start experiment
-    # controller.fill_text('Initializing Speakers.')
-    # controller.draw_text()
-    # controller.win.flip()
-    # controller.select_speakers()
+    ## Initialize vsync sensor
+    controller.turn_off_screen()
+    controller.fill_text('Initializing VSync Sensor.')
+    controller.draw_text()
+    controller.fill_sensor_box('white')
+    controller.sensor_box.draw()
+    controller.win.flip()
+    if input('Finished setting up the vsync sensor? y/n?\n') != 'y':
+        exit()
 
-    # # Testing phase
-    # controller.screen_timing_test()
-    # if input('Continue? y/n\n') != 'y':
-    #     exit()
+    # Start experiment
+    controller.fill_text('Initializing Speakers...')
+    controller.draw_text()
+    controller.win.flip()
+    controller.select_speakers()
+
+    # Testing phase
+    controller.screen_timing_test()
+    if input('Does the screen timing test pass? y/n\n') != 'y':
+        exit()
 
     # Familiarization phase
     print('#####################')
     print('Familiarization Phase.')
-    # controller.familiarization()
+    controller.familiarization()
 
-    # # Resting state recording
-    # print('#####################')
-    # print('Resting state recording Phase.')
-    # controller.resting_state_recording()
-    
     # Start experiment
     if input('Start experiment? y/n\n') == 'y':
+        ## Resting state recording
+        print('#####################')
+        print('Resting state recording Phase.')
+        controller.resting_state_recording()
+
+        ## Session
         try:
             session_start_time = time.perf_counter()
             controller.run_session()
