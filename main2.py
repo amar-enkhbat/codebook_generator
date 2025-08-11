@@ -154,16 +154,15 @@ class StimController:
             self.sequence_outlet = StreamOutlet(info)
         except Exception as e:
             self.sequence_outlet = None
-            logging.warning(f"Sequence outlet couldn't be initialized")
-            
-    
+            logging.warning(f"Sequence outlet couldn't be initialized, {e}")
+
     def init_marker_lsl_stream(self) -> None:
         try:
             info = StreamInfo(name='MarkerStream', type='Marker', channel_count=1, channel_format=3, nominal_srate=0, source_id='marker_stream_id')
             self.marker_outlet = StreamOutlet(info)
         except Exception as e:
             self.marker_outlet = None
-            logging.warning(f"Marker outlet couldn't be initialized")
+            logging.warning(f"Marker outlet couldn't be initialized: {e}")
     
     def send_laser_values(self, values) -> None:
         end_time = time.perf_counter() + self.sequence_on_duration
@@ -243,8 +242,12 @@ class StimController:
             raise ValueError('protoc must be erp or cvep')
 
     def cue_audio(self, ref_obj: str, target_obj: str):
-        """Cue audio before a trial"""
+        """Cue audio before a trial. First cue cannot be cancelled."""
         audio = sound.Sound(f'{self.cue_audio_path}/{self.mode}_{ref_obj}2{target_obj}.mp3')
+        audio.play()
+        start_time = time.perf_counter()
+        duration = audio.getDuration()
+        perf_sleep(duration)
 
         while True:
             # Play the audio
@@ -252,17 +255,31 @@ class StimController:
             start_time = time.perf_counter()
             duration = audio.getDuration()
 
-            # # Monitor button input during audio playback
-            # while time.perf_counter() - start_time < duration:
-            #     try:
-            #         x = self.button_box.readline().decode()
-            #         if len(x):
-            #             self.marker_outlet.push_sample(['button_press'])
-            #             audio.stop()
-            #             perf_sleep(np.random.randint(30, 41, 1) / 10)  # wait 3 to 4 seconds
-            #             return x
-            #     except:
-            #         continue
+            # 3-second pause between playbacks, checking for input
+            end_time = time.perf_counter() + 3
+            while time.perf_counter() < end_time:
+                try:
+                    x = self.button_box.readline().decode()
+                    if len(x):
+                        self.marker_outlet.push_sample(['button_press'])
+                        audio.stop()
+                        self.marker_outlet.push_sample(['audio_stop'])
+                        perf_sleep(np.random.randint(30, 41, 1) / 10)  # wait 3 to 4 seconds
+                        return x
+                except:
+                    continue
+
+            # Monitor button input during audio playback
+            while time.perf_counter() - start_time < duration:
+                try:
+                    x = self.button_box.readline().decode()
+                    if len(x):
+                        self.marker_outlet.push_sample(['button_press'])
+                        audio.stop()
+                        perf_sleep(np.random.randint(30, 41, 1) / 10)  # wait 3 to 4 seconds
+                        return x
+                except:
+                    continue
             # Monitor button input during audio playback
             while time.perf_counter() - start_time < duration:
                 pass
@@ -276,7 +293,7 @@ class StimController:
                         self.marker_outlet.push_sample(['button_press'])
                         audio.stop()
                         self.marker_outlet.push_sample(['audio_stop'])
-                        perf_sleep(np.random.randint(30, 41, 1) / 10)  # wait 3~4 seconds
+                        perf_sleep(np.random.randint(30, 41, 1) / 10)  # wait 3 to 4 seconds
                         return x
                 except:
                     continue
@@ -672,10 +689,7 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
     controller = StimController()
-    # while True:
-    #     controller.send_laser_values([1] * 8)
     # prefs.hardware['audioDevice'] = 'Speakers (Realtek(R) Audio)'
-    prefs.hardware['audioDevice'] = 'Speakers (High Definition Audio Device)'
     prefs.hardware['audioDevice'] = 'Speakers (High Definition Audio Device)'
     
     # # Initialize vsync sensor
@@ -686,11 +700,11 @@ if __name__ == "__main__":
     # if input('Have you initialized the vsync sensor? y/n?\n') != 'y':
     #     exit()
 
-    # Start experiment
-    controller.fill_text('Initializing Speakers.')
-    controller.draw_text()
-    controller.win.flip()
-    controller.select_speakers()
+    # # Start experiment
+    # controller.fill_text('Initializing Speakers.')
+    # controller.draw_text()
+    # controller.win.flip()
+    # controller.select_speakers()
 
     # # Testing phase
     # controller.screen_timing_test()
