@@ -109,35 +109,36 @@ class ScreenStimWindow:
         self.pictogram_poss = [(self.stim_box_space + i*(self.stim_box_size + self.stim_box_space) - self.width // 2 + self.stim_box_size / 2, 0) for i in range(self.n_objs)]
         self.init_pictograms()
 
-    def run_trial_erp(self, codebook: list, target_obj_idx: int, trial_id: int, n_stim_on_frames: int=6, n_stim_off_frames: int=9):
+    def run_trial_erp(self, codebook: list, target_id: int, trial_id: int, n_stim_on_frames: int=6, n_stim_off_frames: int=9):
         """Run a single trial with multiple sequences on monitor"""
         self.screen_warmup(duration=1)
-        print(trial_id, target_obj_idx)
         self.marker_outlet.push_sample([200 + trial_id]) # Push trial start marker
         for sequence in codebook:
+            is_target = sequence[target_id]
             for i in range(n_stim_on_frames):
-                is_target = sequence[target_obj_idx]
                 self.draw_sensor_box('white' if is_target == 1 else 'black')
                 self.draw_boxes(sequence)
                 self.win.flip()
                 # If first sequence and is_target is equal to 1 push to target outlet
                 if i == 0:
+                    print(f'trial_id: {trial_id}, target_id: {target_id}, is_target: {is_target}, sequence: {sequence}')
                     if is_target == 1:
-                        self.marker_outlet.push_sample([111 + target_obj_idx]) # Push target marker
+                        self.marker_outlet.push_sample([110 + target_id]) # Push target marker
                     elif is_target == 0:
-                        self.marker_outlet.push_sample([101 + target_obj_idx]) # Push non-target marker
+                        self.marker_outlet.push_sample([100 + target_id]) # Push non-target marker
                     else:
                         ValueError(f'Unknown target value: {is_target}')
             for i in range(n_stim_off_frames):
                 self.draw_sensor_box('black')
                 self.draw_boxes([0] * 8)
                 self.win.flip()
+        self.marker_outlet.push_sample([210 + trial_id]) # Push trial start marker
                 
-    def run_trial_cvep(self, codebook: list, target_obj_idx: int):
+    def run_trial_cvep(self, codebook: list, target_id: int):
         """Run a single trial with multiple sequences on monitor"""
         self.screen_warmup()
         for sequence in codebook:
-            self.draw_sensor_box('white' if sequence[target_obj_idx] == 1 else 'black')
+            self.draw_sensor_box('white' if sequence[target_id] == 1 else 'black')
             self.draw_boxes(sequence)
             self.win.flip()
             self.sequence_outlet.push_sample(sequence)
@@ -149,11 +150,11 @@ class ScreenStimWindow:
         """Test Run ERP protocol"""
         self.win.recordFrameIntervals = True
         # run 10 trials with 1 warmup in-between
-        codebook = load_codebooks_block_2()[0]
+        codebook = load_codebooks_block_2()[0].astype(int).tolist()
         n_on_frames = 6 # 0.1 seconds
         n_off_frames = 9 # 0.15 seconds
-        for trial_id in range(10):
-            self.run_trial_erp(codebook, target_obj_idx=0, trial_id=trial_id, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
+        for trial_id in range(8):
+            self.run_trial_erp(codebook, target_id=0, trial_id=trial_id, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
             time.sleep(1)
     
     def test_cvep(self):
@@ -163,7 +164,7 @@ class ScreenStimWindow:
         codebook = load_codebooks_block_3()[0]
         codebook = list(codebook)
         for _ in range(10):
-            self.run_trial_cvep(codebook, target_obj_idx=0)
+            self.run_trial_cvep(codebook, target_id=0)
             time.sleep(1)
 
     def screen_timing_test(self):
