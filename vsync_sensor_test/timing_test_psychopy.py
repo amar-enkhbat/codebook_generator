@@ -41,7 +41,6 @@ for i in range(8):
 
 
 # Image stims
-
 # Warmup
 for i in range(5 * 60):
     color = 'white' if i % 2 == 0 else 'black'
