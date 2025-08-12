@@ -2,7 +2,7 @@ import serial
 import logging
 from typing import List
 import time
-
+from utils import perf_sleep
 
 class LaserController:
     def __init__(self, port: str='COM7'):
@@ -20,12 +20,24 @@ class LaserController:
         else:
             logging.warning("Teensy not connected, values not sent.")
         
-    def lasers_on(self) -> None:
+    def on(self) -> None:
         self.send_lasers_values([1] * 8)
 
-    def lasers_off(self) -> None:
+    def off(self) -> None:
         self.send_lasers_values([0] * 8)
         
+    def on_for(self, duration: float) -> None:
+        end_time = time.perf_counter() + duration
+        self.on()
+        while time.perf_counter() <= end_time:
+            pass
+        
+    def off_for(self, duration: float) -> None:
+        end_time = time.perf_counter() + duration
+        self.off()
+        while time.perf_counter() <= end_time:
+            pass
+    
     def close(self) -> None:
         if self.teensy is not None:
             self.teensy.close()
