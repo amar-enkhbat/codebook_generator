@@ -2,6 +2,7 @@ import time
 import numpy as np
 from psychopy import visual, event
 from typing import Dict, List
+from pylsl import StreamInfo, StreamOutlet
 
 
 class ScreenStimWindow:
@@ -12,7 +13,7 @@ class ScreenStimWindow:
         self.refresh_rate = 60 # Hz
         
         # Screen (condition 4)
-        self.win = visual.Window(size=(1920, 1080), fullscr=True, screen=1, units="pix", color='grey', waitBlanking=True, allowGUI=False)
+        self.win = visual.Window(size=(1920, 1080), winType='pyglet', fullscr=True, screen=1, units="pix", color='grey', waitBlanking=True, allowGUI=False)
         self.width, self.height = self.win.size
         
         self.sensor_box_size = 150
@@ -26,17 +27,21 @@ class ScreenStimWindow:
         self.init_pictograms()
         # Init description text on screen
         self.init_text()
+
+        # Init sequence stream
+        info = StreamInfo(name='SequenceStream', type='Marker', channel_count=8, channel_format=6, nominal_srate=0, source_id='sequence_stream_id')
+        self.sequence_outlet = StreamOutlet(info)
         
     def init_sensor(self):
         # Create a box on top left of screen for vsync sensor
-        self.sensor_box = visual.Rect(self.win, width=self.sensor_box_size, height=self.sensor_box_size, pos=(-self.width / 2 + self.sensor_box_size / 2, self.height / 2 - self.sensor_box_size / 2), color='black')
+        self.sensor_box = visual.Rect(self.win, width=self.sensor_box_size, height=self.sensor_box_size, pos=(-self.width / 2 + self.sensor_box_size / 2, self.height / 2 - self.sensor_box_size / 2), color='black', autoLog=False)
         self.sensor_box.setAutoDraw(False)
         
     def init_boxes(self):
         # Boxes behind pictograms
         self.boxes = []
         for i in range(self.n_objs):
-            box = visual.Rect(self.win, width=self.stim_box_size, height=self.stim_box_size, pos=self.stim_box_poss[i], units='pix', color='black')
+            box = visual.Rect(self.win, width=self.stim_box_size, height=self.stim_box_size, pos=self.stim_box_poss[i], units='pix', color='black', autoLog=False)
             box.setAutoDraw(False)
             self.boxes.append(box)
 
@@ -44,56 +49,44 @@ class ScreenStimWindow:
         # Pictograms on top of boxes
         self.pictograms = []
         for i, img_path in enumerate(self.objects.values()):
-            pictogram = visual.ImageStim(self.win, f'./icons/{img_path}.png', mask=None, units='pix', pos=self.pictogram_poss[i], size=self.stim_box_size)
+            pictogram = visual.ImageStim(self.win, f'./icons/{img_path}.png', mask=None, units='pix', pos=self.pictogram_poss[i], size=self.stim_box_size, autoLog=False)
             pictogram.setAutoDraw(False)
             self.pictograms.append(pictogram)
 
     def init_text(self):
-        self.description_text = visual.TextStim(self.win, text="Hello World", pos=(0, 0), color='white', height=50)
+        self.description_text = visual.TextStim(self.win, text="Hello World", pos=(0, 0), color='white', height=50, autoLog=False)
         self.description_text.setAutoDraw(False)
 
-    def fill_text(self, text: str):
+    def draw_text(self, text: str):
         self.description_text.setText(text)
-    
-    def draw_text(self):
         self.description_text.draw()
         
-    def fill_boxes(self, sequence: List[int]):
-        for val, box in zip(sequence, self.boxes):
-            if val == 1:
-                box.fillColor = 'white'
-            elif val == 0:
-                box.fillColor = 'black'
+        
+    def draw_boxes(self, sequence: List[int]):
+        # for val, box in zip(sequence, self.boxes):
+        for i in range(len(sequence)):
+            if sequence[i] == 1:
+                self.boxes[i].fillColor = 'white'
+            elif sequence[i] == 0:
+                self.boxes[i].fillColor = 'black'
             else:
-                box.fillColor = 'grey'
+                self.boxes[i].fillColor = 'grey'
+            self.boxes[i].draw()
+            self.pictograms[i].draw()
 
-    def fill_sensor_box(self, color: str):
+    def draw_sensor_box(self, color: str):
         self.sensor_box.fillColor = color
-
-    def draw_boxes(self):
-        for box in self.boxes:
-            box.draw()
-
-    def draw_sensor_box(self):
         self.sensor_box.draw()
-
-    def draw_pictograms(self):
-        for pictogram in self.pictograms:
-            pictogram.draw()
     
     def disable_stims(self):
-        self.fill_sensor_box('grey')
-        self.fill_boxes([2] * 8)
-        self.draw_boxes()
-        self.draw_sensor_box()
+        self.draw_sensor_box('grey')
+        self.draw_boxes([2] * 8)
         self.win.flip()
     
     def hide_stims(self, hide_duration: float=1.0):
         for _ in range(int(hide_duration * self.refresh_rate)):  # 1 second of flips at 60Hz
-            self.fill_sensor_box('grey')
-            self.fill_boxes([2] * 8)
-            self.draw_boxes()
-            self.draw_sensor_box()
+            self.draw_sensor_box('grey')
+            self.draw_boxes([2] * 8)
             self.win.flip()
             
     def screen_warmup(self, warmup_duration: float=1.0):
@@ -103,11 +96,8 @@ class ScreenStimWindow:
             dt (float): warmup duration (seconds)
         """
         for _ in range(int(warmup_duration * self.refresh_rate)):  # 1 second of flips at 60Hz
-            self.fill_sensor_box('black')
-            self.fill_boxes([0] * 8)
-            self.draw_boxes()
-            self.draw_sensor_box()
-            self.draw_pictograms()
+            self.draw_sensor_box('black')
+            self.draw_boxes([0] * 8)
             self.win.flip()
             
     def reorder_pictograms(self, new_idc: List[int]):
@@ -118,41 +108,49 @@ class ScreenStimWindow:
         self.pictogram_poss = [(self.stim_box_space + i*(self.stim_box_size + self.stim_box_space) - self.width // 2 + self.stim_box_size / 2, 0) for i in range(self.n_objs)]
         self.init_pictograms()
 
+    def run_trial_erp(self, codebook: list, target_obj_idx: int, n_stim_on_frames: int, n_stim_off_frames: int):
+        """Run a single trial with multiple sequences on monitor"""
+        # self.screen_warmup()
+        for sequence in codebook:
+            for i in range(n_stim_on_frames):
+                self.draw_sensor_box('white' if sequence[target_obj_idx] == 1 else 'black')
+                self.draw_boxes(sequence)
+                self.win.flip()
+                if i == 0:
+                    self.sequence_outlet.push_sample(sequence)
+            for i in range(n_stim_off_frames):
+                self.draw_sensor_box('black')
+                self.draw_boxes([0] * 8)
+                self.win.flip()
+                if i == 0:
+                    self.sequence_outlet.push_sample([0] * 8)
+
+    def test_erp(self):
+        """Test Run ERP protocol"""
+        self.win.recordFrameIntervals = True
+        # run 10 trials with 1 warmup in-between
+        codebook = np.ones((self.n_objs, 48), dtype=int).T
+        n_on_frames = 6 # 0.1 seconds
+        n_off_frames = 9 # 0.15 seconds
+        for i in range(10):
+            self.run_trial_erp(codebook, target_obj_idx=0, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
+            time.sleep(1)
+
     def screen_timing_test(self):
         """Do some test to measure screen timing."""
         self.win.recordFrameIntervals = True
-        Turn on/off only boxes and sensor box
+        # Turn on/off only boxes and sensor box
         for _ in range(5):
             end_time = time.perf_counter() + self.screen_warmup_duration
-            self.fill_boxes([1] * 8)
-            self.fill_sensor_box('white')
-            self.draw_boxes()
-            self.draw_sensor_box()
+            self.draw_boxes([1] * 8)
+            self.draw_sensor_box('white')
             self.win.flip()
             while time.perf_counter() < end_time:
                 pass
             
             end_time = time.perf_counter() + self.screen_warmup_duration
-            self.fill_boxes([0] * 8)
-            self.fill_sensor_box('black')
-            self.draw_boxes()
-            self.draw_sensor_box()
-            self.win.flip()
-            while time.perf_counter() < end_time:
-                pass
-
-        # Turn on/off only pictograms
-        for _ in range(5):
-            end_time = time.perf_counter() + self.screen_warmup_duration
-            self.fill_boxes([1] * 8)
-            self.draw_boxes()
-            self.draw_pictograms()
-            self.win.flip()
-            while time.perf_counter() < end_time:
-                pass
-            end_time = time.perf_counter() + self.screen_warmup_duration
-            self.fill_boxes([1] * 8)
-            self.draw_boxes()
+            self.draw_boxes([0] * 8)
+            self.draw_sensor_box('black')
             self.win.flip()
             while time.perf_counter() < end_time:
                 pass
@@ -163,9 +161,7 @@ class ScreenStimWindow:
             self.reorder_pictograms(new_idc)
             self.init_pictograms()
             end_time = time.perf_counter() + self.screen_warmup_duration
-            self.fill_boxes([1] * 8)
-            self.draw_boxes()
-            self.draw_pictograms()
+            self.draw_boxes([1] * 8)
             self.win.flip()
             while time.perf_counter() < end_time:
                 pass
@@ -180,20 +176,14 @@ class ScreenStimWindow:
         for _ in range(5):
             for _ in range(120):
                 end_time = time.perf_counter() + 1 / self.refresh_rate
-                self.fill_sensor_box('white')
-                self.fill_boxes([1] * 8)
-                self.draw_boxes()
-                self.draw_sensor_box()
-                self.draw_pictograms()
+                self.draw_sensor_box('white')
+                self.draw_boxes([1] * 8)
                 self.win.flip()
                 while time.perf_counter() < end_time:
                     pass
                 end_time = time.perf_counter() + 1 / self.refresh_rate
-                self.fill_sensor_box('black')
-                self.fill_boxes([0] * 8)
-                self.draw_boxes()
-                self.draw_sensor_box()
-                self.draw_pictograms()
+                self.draw_sensor_box('black')
+                self.draw_boxes([0] * 8)
                 self.win.flip()
                 while time.perf_counter() < end_time:
                     pass
@@ -202,21 +192,15 @@ class ScreenStimWindow:
         for _ in range(5):
             for _ in range(60):
                 end_time = time.perf_counter() + 1 / self.refresh_rate
-                self.fill_sensor_box('white')
-                self.fill_boxes([1] * 8)
-                self.draw_boxes()
-                self.draw_sensor_box()
-                self.draw_pictograms()
+                self.draw_sensor_box('white')
+                self.draw_boxes([1] * 8)
                 self.win.flip()
                 while time.perf_counter() < end_time:
                     pass
             for _ in range(60):
                 end_time = time.perf_counter() + 1 / self.refresh_rate
-                self.fill_sensor_box('black')
-                self.fill_boxes([0] * 8)
-                self.draw_boxes()
-                self.draw_sensor_box()
-                self.draw_pictograms()
+                self.draw_sensor_box('black')
+                self.draw_boxes([0] * 8)
                 self.win.flip()
                 while time.perf_counter() < end_time:
                     pass
@@ -238,3 +222,22 @@ class ScreenStimWindow:
 
         event.waitKeys()
         self.win.close()
+
+
+
+if __name__ == '__main__':
+    from window import ScreenStimWindow
+
+    objects = {
+        0: 'bottle', 
+        1: 'bandage', 
+        2: 'remote', 
+        3: 'can', 
+        4: 'candle', 
+        5: 'box', 
+        6: 'book', 
+        7: 'cup'
+    }
+    screen = ScreenStimWindow(objects)
+    _ = input('Press any key to start test\n')
+    screen.screen_timing_test()

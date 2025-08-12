@@ -39,6 +39,32 @@ boxes.append(visual.Rect(win, width=100, height=100, pos=(-width / 2, height / 2
 for i in range(8):
     boxes.append(visual.Rect(win, width=box_size, height=box_size, pos=(150*i - height/2, 0)))
 
+objects = {
+    0: 'bottle', 
+    1: 'bandage', 
+    2: 'remote', 
+    3: 'can', 
+    4: 'candle', 
+    5: 'box', 
+    6: 'book', 
+    7: 'cup'
+}
+pictograms = []
+for i, img_path in enumerate(objects.values()):
+    pictogram = visual.ImageStim(win, f'../icons/{img_path}.png', mask=None, units='pix', pos=(150*i - height/2, 0), size=100)
+    pictograms.append(pictogram)
+
+def screen_warmup(warmup_duration: float=1.0):
+    """Flip screen at refresh rate for dt seconds to warmup.
+    """
+    for _ in range(int(warmup_duration * refresh_rate)):  # 1 second of flips at 60Hz
+        color = 'black'
+        for box in boxes:
+            box.fillColor = color
+            box.draw()
+        for pictogram in pictograms:
+            pictogram.draw()
+        win.flip()
 
 # Image stims
 # Warmup
@@ -47,12 +73,16 @@ for i in range(5 * 60):
     for box in boxes:
         box.fillColor = color
         box.draw()
+    for pictogram in pictograms:
+        pictogram.draw()
     win.flip()
 
 # Wait start
 for box in boxes:
     box.fillColor = 'black'
     box.draw()
+for pictogram in pictograms:
+    pictogram.draw()
 win.flip()
 
 # Wait for Enter key to start
@@ -68,21 +98,28 @@ core.wait(1)
 
 for stim_num in range(n_stims):
     # Stim on
-    
+    screen_warmup()
     for i in range(n_stim_on_frames):
         for box in boxes:
             box.fillColor = 'white'
             box.draw()
+        for pictogram in pictograms:
+            pictogram.draw()
         win.flip()
         if i == 0: # Send label only after first flip
            outlet.push_sample(['1'])
     # Stim off
     
     for i in range(n_stim_off_frames):
+        start = time.perf_counter()
         for box in boxes:
             box.fillColor = 'black'
             box.draw()
+        for pictogram in pictograms:
+            pictogram.draw()
         win.flip()
+        elapsed = (time.perf_counter() - start) * 1000
+        print(f"Flip execution time: {elapsed:.3f} ms")
         if i == 0: # Send label only after first flip
            outlet.push_sample(['0'])
     # Pause every 12 stims
@@ -91,6 +128,8 @@ for stim_num in range(n_stims):
             for box in boxes:
                 box.fillColor = 'black'
                 box.draw()
+            for pictogram in pictograms:
+                pictogram.draw()
             win.flip()
 
 # End experiment
