@@ -3,7 +3,6 @@ import numpy as np
 from psychopy import visual, event
 from typing import Dict, List
 from pylsl import StreamInfo, StreamOutlet
-from utils import load_codebooks_block_2, load_codebooks_block_3
 
 
 class ScreenStimWindow:
@@ -17,7 +16,7 @@ class ScreenStimWindow:
         self.win = visual.Window(size=(1920, 1080), winType='pyglet', fullscr=True, screen=1, units="pix", color='grey', waitBlanking=True, allowGUI=False)
         self.width, self.height = self.win.size
         
-        self.sensor_box_size = 80
+        self.sensor_box_size = 150
         self.stim_box_size = 150
         self.stim_box_space = (self.width - self.stim_box_size * 8) // 9
         self.stim_box_poss = [(self.stim_box_space + i*(self.stim_box_size + self.stim_box_space) - self.width // 2 + self.stim_box_size / 2, 0) for i in range(self.n_objs)]
@@ -29,10 +28,10 @@ class ScreenStimWindow:
         # Init description text on screen
         self.init_text()
 
-        # Init marker stream
-        info = StreamInfo(name='MarkerStream', type='Marker', channel_count=1, channel_format=5, nominal_srate=0, source_id='marker_stream_id')
-        self.marker_outlet = StreamOutlet(info)
-
+        # Init sequence stream
+        info = StreamInfo(name='SequenceStream', type='Marker', channel_count=8, channel_format=6, nominal_srate=0, source_id='sequence_stream_id')
+        self.sequence_outlet = StreamOutlet(info)
+        
     def init_sensor(self):
         # Create a box on top left of screen for vsync sensor
         self.sensor_box = visual.Rect(self.win, width=self.sensor_box_size, height=self.sensor_box_size, pos=(-self.width / 2 + self.sensor_box_size / 2, self.height / 2 - self.sensor_box_size / 2), color='black', autoLog=False)
@@ -90,13 +89,13 @@ class ScreenStimWindow:
             self.draw_boxes([2] * 8)
             self.win.flip()
             
-    def screen_warmup(self, duration: float=1.0):
+    def screen_warmup(self, warmup_duration: float=1.0):
         """Flip screen at refresh rate for dt seconds to warmup.
 
         Args:
             dt (float): warmup duration (seconds)
         """
-        for _ in range(int(duration * self.refresh_rate)):  # 1 second of flips at 60Hz
+        for _ in range(int(warmup_duration * self.refresh_rate)):  # 1 second of flips at 60Hz
             self.draw_sensor_box('black')
             self.draw_boxes([0] * 8)
             self.win.flip()
@@ -109,67 +108,33 @@ class ScreenStimWindow:
         self.pictogram_poss = [(self.stim_box_space + i*(self.stim_box_size + self.stim_box_space) - self.width // 2 + self.stim_box_size / 2, 0) for i in range(self.n_objs)]
         self.init_pictograms()
 
-    def run_trial(self, codebook: list, target_id: int, trial_id: int, n_stim_on_frames: int, n_stim_off_frames: int):
+    def run_trial_erp(self, codebook: list, target_obj_idx: int, n_stim_on_frames: int, n_stim_off_frames: int):
         """Run a single trial with multiple sequences on monitor"""
-        self.marker_outlet.push_sample([200 + trial_id]) # Push trial start marker
+        # self.screen_warmup()
         for sequence in codebook:
-            is_target = sequence[target_id]
             for i in range(n_stim_on_frames):
-                self.draw_sensor_box('white' if is_target == 1 else 'black')
+                self.draw_sensor_box('white' if sequence[target_obj_idx] == 1 else 'black')
                 self.draw_boxes(sequence)
                 self.win.flip()
-                # If first sequence and is_target is equal to 1 push to target outlet
                 if i == 0:
-                    if is_target == 1:
-                        self.marker_outlet.push_sample([110 + target_id]) # Push target marker
-                    elif is_target == 0:
-                        self.marker_outlet.push_sample([100 + target_id]) # Push non-target marker
-                    else:
-                        ValueError(f'Unknown target value: {is_target}')
+                    self.sequence_outlet.push_sample(sequence)
             for i in range(n_stim_off_frames):
                 self.draw_sensor_box('black')
                 self.draw_boxes([0] * 8)
                 self.win.flip()
-        self.marker_outlet.push_sample([210 + trial_id]) # Push trial start marker
+                if i == 0:
+                    self.sequence_outlet.push_sample([0] * 8)
 
     def test_erp(self):
         """Test Run ERP protocol"""
-        # self.win.recordFrameIntervals = True
-        # run 10 trials with 1 warmup in-between
-        codebook = load_codebooks_block_2()[0].astype(int).tolist()
-        n_on_frames = 6 # 0.1 seconds
-        n_off_frames = 9 # 0.15 seconds
-        for trial_id in range(8):
-            self.screen_warmup(duration=3)
-            self.run_trial(codebook, target_id=0, trial_id=trial_id, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
-
-        # # Log results
-        # n_dropped_frames = sum(np.array(self.win.frameIntervals) > 1.5 * (1/self.refresh_rate))
-        # print(f"Avg frame interval: {np.mean(self.win.frameIntervals)}")
-        # print(f"Max frame interval: {np.max(self.win.frameIntervals)}")
-        # print(f"Dropped frames: {n_dropped_frames}")
-        # print(f'Specified refresh rate: {self.refresh_rate}')
-        # print(f"Actual refresh rate: {self.win.getActualFrameRate()}")
-        # print(f'# of dropped frames: {n_dropped_frames}')
-        # self.win.recordFrameIntervals = False
-    
-    def test_cvep(self):
-        """Test Run CVEP protocol"""
         self.win.recordFrameIntervals = True
         # run 10 trials with 1 warmup in-between
-        codebook = load_codebooks_block_3()[0].tolist()
-        for trial_id in range(8):
-            self.run_trial(codebook, target_id=0, trial_id=trial_id, n_stim_on_frames=1, n_stim_off_frames=0)
-
-        # Log results
-        n_dropped_frames = sum(np.array(self.win.frameIntervals) > 1.5 * (1/self.refresh_rate))
-        print(f"Avg frame interval: {np.mean(self.win.frameIntervals)}")
-        print(f"Max frame interval: {np.max(self.win.frameIntervals)}")
-        print(f"Dropped frames: {n_dropped_frames}")
-        print(f'Specified refresh rate: {self.refresh_rate}')
-        print(f"Actual refresh rate: {self.win.getActualFrameRate()}")
-        print(f'# of dropped frames: {n_dropped_frames}')
-        self.win.recordFrameIntervals = False
+        codebook = np.ones((self.n_objs, 48), dtype=int).T
+        n_on_frames = 6 # 0.1 seconds
+        n_off_frames = 9 # 0.15 seconds
+        for i in range(10):
+            self.run_trial_erp(codebook, target_obj_idx=0, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
+            time.sleep(1)
 
     def screen_timing_test(self):
         """Do some test to measure screen timing."""
@@ -251,11 +216,14 @@ class ScreenStimWindow:
         self.win.recordFrameIntervals = False
         
         self.disable_stims()
-        self.draw_text("Screen timing test completed. Press any key to close.")
+        self.fill_text("Screen timing test completed. Press any key to close.")
+        self.draw_text()
         self.win.flip()
 
         event.waitKeys()
         self.win.close()
+
+
 
 if __name__ == '__main__':
     from window import ScreenStimWindow
@@ -273,5 +241,3 @@ if __name__ == '__main__':
     screen = ScreenStimWindow(objects)
     _ = input('Press any key to start test\n')
     screen.test_erp()
-    # screen.test_cvep()
-    # screen.screen_timing_test()
