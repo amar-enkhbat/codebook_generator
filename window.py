@@ -9,6 +9,14 @@ from utils import load_codebooks_block_2, load_codebooks_block_3
 class ScreenStimWindow:
     def __init__(self, objects: Dict[int, str]):
         self.objects = objects
+        self.marker_ids = {
+            'non_target': 100,
+            'target': 110,
+            'trial_start': 200,
+            'trial_end': 210
+        }
+        
+
         self.n_objs = len(objects)
         self.screen_warmup_duration = 1 # seconds
         self.refresh_rate = 60 # Hz
@@ -16,6 +24,8 @@ class ScreenStimWindow:
         # Screen (condition 4)
         self.win = visual.Window(size=(1920, 1080), winType='pyglet', fullscr=True, screen=1, units="pix", color='grey', waitBlanking=True, allowGUI=False)
         self.width, self.height = self.win.size
+        self.refresh_rate = int(round(self.win.getActualFrameRate(nMaxFrames=300, nWarmUpFrames=60)))
+        print('Calculated screen refresh rate:', self.refresh_rate)
         
         self.sensor_box_size = 80
         self.stim_box_size = 150
@@ -61,7 +71,6 @@ class ScreenStimWindow:
     def draw_text(self, text: str):
         self.description_text.setText(text)
         self.description_text.draw()
-        
         
     def draw_boxes(self, sequence: List[int]):
         # for val, box in zip(sequence, self.boxes):
@@ -111,7 +120,7 @@ class ScreenStimWindow:
 
     def run_trial(self, codebook: list, target_id: int, trial_id: int, n_stim_on_frames: int, n_stim_off_frames: int):
         """Run a single trial with multiple sequences on monitor"""
-        self.marker_outlet.push_sample([200 + trial_id]) # Push trial start marker
+        self.marker_outlet.push_sample([self.marker_ids['trial_start'] + trial_id]) # Push trial start marker
         for sequence in codebook:
             is_target = sequence[target_id]
             for i in range(n_stim_on_frames):
@@ -121,53 +130,76 @@ class ScreenStimWindow:
                 # If first sequence and is_target is equal to 1 push to target outlet
                 if i == 0:
                     if is_target == 1:
-                        self.marker_outlet.push_sample([110 + target_id]) # Push target marker
+                        self.marker_outlet.push_sample([self.marker_ids['target'] + target_id]) # Push target marker
                     elif is_target == 0:
-                        self.marker_outlet.push_sample([100 + target_id]) # Push non-target marker
+                        self.marker_outlet.push_sample([self.marker_ids['non_target'] + target_id]) # Push non-target marker
                     else:
                         ValueError(f'Unknown target value: {is_target}')
             for i in range(n_stim_off_frames):
                 self.draw_sensor_box('black')
                 self.draw_boxes([0] * 8)
                 self.win.flip()
-        self.marker_outlet.push_sample([210 + trial_id]) # Push trial start marker
+        self.marker_outlet.push_sample([self.marker_ids['trial_end'] + trial_id]) # Push trial start marker
+
+    def run_trial_cvep(self, codebook: list, target_id: int, trial_id: int):
+        """Run a single trial with multiple sequences on monitor"""
+        self.marker_outlet.push_sample([self.marker_ids['trial_start'] + trial_id]) # Push trial start marker
+        for sequence in codebook:
+            is_target = sequence[target_id]
+            self.draw_sensor_box('white' if is_target == 1 else 'black')
+            self.draw_boxes(sequence)
+            self.win.flip()
+            # If first sequence and is_target is equal to 1 push to target outlet
+            if is_target == 1:
+                self.marker_outlet.push_sample([self.marker_ids['target'] + target_id]) # Push target marker
+            elif is_target == 0:
+                self.marker_outlet.push_sample([self.marker_ids['non_target'] + target_id]) # Push non-target marker
+            else:
+                ValueError(f'Unknown target value: {is_target}')
+        self.marker_outlet.push_sample([self.marker_ids['trial_end'] + trial_id]) # Push trial start marker
 
     def test_erp(self):
         """Test Run ERP protocol"""
-        # self.win.recordFrameIntervals = True
+        self.screen_warmup(duration=3)
+        self.win.recordFrameIntervals = True
         # run 10 trials with 1 warmup in-between
         codebook = load_codebooks_block_2()[0].astype(int).tolist()
         n_on_frames = 6 # 0.1 seconds
         n_off_frames = 9 # 0.15 seconds
-        for trial_id in range(8):
+        for trial_id in range(1):
             self.screen_warmup(duration=3)
             self.run_trial(codebook, target_id=0, trial_id=trial_id, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
 
-        # # Log results
-        # n_dropped_frames = sum(np.array(self.win.frameIntervals) > 1.5 * (1/self.refresh_rate))
-        # print(f"Avg frame interval: {np.mean(self.win.frameIntervals)}")
-        # print(f"Max frame interval: {np.max(self.win.frameIntervals)}")
-        # print(f"Dropped frames: {n_dropped_frames}")
-        # print(f'Specified refresh rate: {self.refresh_rate}')
-        # print(f"Actual refresh rate: {self.win.getActualFrameRate()}")
-        # print(f'# of dropped frames: {n_dropped_frames}')
-        # self.win.recordFrameIntervals = False
+        # Log results
+        frame_intervals = np.array(self.win.frameIntervals)
+        n_dropped_frames = sum(frame_intervals > 1.5 * (1/self.refresh_rate))
+        print(f"Avg frame interval: {frame_intervals.mean()}")
+        print(f"Min frame interval: {frame_intervals.min()}")
+        print(f"Max frame interval: {frame_intervals.max()}")
+        print(f"Dropped frames: {n_dropped_frames}")
+        print(f'Specified refresh rate: {self.refresh_rate}')
+        print(f'# of dropped frames: {n_dropped_frames}')
+        self.win.recordFrameIntervals = False
     
     def test_cvep(self):
         """Test Run CVEP protocol"""
+        self.screen_warmup(duration=3)
         self.win.recordFrameIntervals = True
         # run 10 trials with 1 warmup in-between
         codebook = load_codebooks_block_3()[0].tolist()
-        for trial_id in range(8):
-            self.run_trial(codebook, target_id=0, trial_id=trial_id, n_stim_on_frames=1, n_stim_off_frames=0)
+        for trial_id in range(1):
+            self.screen_warmup(duration=3)
+            self.run_trial_cvep(codebook, target_id=0, trial_id=trial_id)
 
         # Log results
-        n_dropped_frames = sum(np.array(self.win.frameIntervals) > 1.5 * (1/self.refresh_rate))
-        print(f"Avg frame interval: {np.mean(self.win.frameIntervals)}")
-        print(f"Max frame interval: {np.max(self.win.frameIntervals)}")
+        frame_intervals = np.array(self.win.frameIntervals)
+        n_dropped_frames = sum(frame_intervals > 1.5 * (1/self.refresh_rate))
+        print(f"Avg frame interval: {frame_intervals.mean()}")
+        print(f"Min frame interval: {frame_intervals.min()}")
+        print(f"Max frame interval: {frame_intervals.max()}")
+        print(f'5 highest frame interval frame #:', np.argsort(frame_intervals)[-5:])
         print(f"Dropped frames: {n_dropped_frames}")
         print(f'Specified refresh rate: {self.refresh_rate}')
-        print(f"Actual refresh rate: {self.win.getActualFrameRate()}")
         print(f'# of dropped frames: {n_dropped_frames}')
         self.win.recordFrameIntervals = False
 
@@ -271,7 +303,10 @@ if __name__ == '__main__':
         7: 'cup'
     }
     screen = ScreenStimWindow(objects)
-    _ = input('Press any key to start test\n')
-    screen.test_erp()
-    # screen.test_cvep()
+    # Set sensor box to black
+    screen.draw_sensor_box('black')
+    screen.draw_text('Press any key to continue')
+    screen.win.flip()
+    event.waitKeys()
+    screen.test_cvep()
     # screen.screen_timing_test()
