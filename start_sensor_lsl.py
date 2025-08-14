@@ -2,7 +2,7 @@ import serial
 import pylsl
 
 def main():
-    vsync_sensor = serial.Serial('COM3', 115200, timeout=0.01)
+    vsync_sensor = serial.Serial('COM8', 115200, timeout=0.001)
     vsync_sensor.reset_input_buffer()
     vsync_sensor.write(b'1') # Start sensor
 
