@@ -40,7 +40,7 @@ class ScreenStimWindow:
         self.init_text()
 
         # Init marker stream
-        info = StreamInfo(name='MarkerStream', type='Marker', channel_count=1, channel_format=5, nominal_srate=0, source_id='marker_stream_id')
+        info = StreamInfo(name='ScreenMarkerStream', type='Marker', channel_count=1, channel_format=5, nominal_srate=0, source_id='screen_marker_stream_id')
         self.marker_outlet = StreamOutlet(info)
 
     def init_sensor(self):
@@ -118,7 +118,7 @@ class ScreenStimWindow:
         self.pictogram_poss = [(self.stim_box_space + i*(self.stim_box_size + self.stim_box_space) - self.width // 2 + self.stim_box_size / 2, 0) for i in range(self.n_objs)]
         self.init_pictograms()
 
-    def run_trial(self, codebook: list, target_id: int, trial_id: int, n_stim_on_frames: int, n_stim_off_frames: int):
+    def run_trial_erp(self, codebook: list, target_id: int, trial_id: int, n_stim_on_frames: int, n_stim_off_frames: int):
         """Run a single trial with multiple sequences on monitor"""
         self.marker_outlet.push_sample([self.marker_ids['trial_start'] + trial_id]) # Push trial start marker
         for sequence in codebook:
@@ -158,7 +158,7 @@ class ScreenStimWindow:
                 ValueError(f'Unknown target value: {is_target}')
         self.marker_outlet.push_sample([self.marker_ids['trial_end'] + trial_id]) # Push trial start marker
 
-    def test_erp(self):
+    def test_erp(self, n_trials: int=8):
         """Test Run ERP protocol"""
         self.screen_warmup(duration=3)
         self.win.recordFrameIntervals = True
@@ -166,9 +166,14 @@ class ScreenStimWindow:
         codebook = load_codebooks_block_2()[0].astype(int).tolist()
         n_on_frames = 6 # 0.1 seconds
         n_off_frames = 9 # 0.15 seconds
-        for trial_id in range(1):
+
+        trial_run_times = []
+        for trial_id in range(n_trials):
+            start_time = time.perf_counter()
+            self.run_trial_erp(codebook, target_id=0, trial_id=trial_id, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
+            elapsed_time = time.perf_counter() - start_time
+            trial_run_times.append(elapsed_time)
             self.screen_warmup(duration=3)
-            self.run_trial(codebook, target_id=0, trial_id=trial_id, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
 
         # Log results
         frame_intervals = np.array(self.win.frameIntervals)
@@ -180,16 +185,25 @@ class ScreenStimWindow:
         print(f'Specified refresh rate: {self.refresh_rate}')
         print(f'# of dropped frames: {n_dropped_frames}')
         self.win.recordFrameIntervals = False
+
+        print('Trial run times:', trial_run_times)
+        print('Mean trial run time (should be 12):', np.mean(trial_run_times))
     
-    def test_cvep(self):
+    def test_cvep(self, n_trials: int=8):
         """Test Run CVEP protocol"""
         self.screen_warmup(duration=3)
         self.win.recordFrameIntervals = True
         # run 10 trials with 1 warmup in-between
         codebook = load_codebooks_block_3()[0].tolist()
-        for trial_id in range(1):
-            self.screen_warmup(duration=3)
+        codebook = codebook[:720]
+
+        trial_run_times = []
+        for trial_id in range(n_trials):
+            start_time = time.perf_counter()
             self.run_trial_cvep(codebook, target_id=0, trial_id=trial_id)
+            elapsed_time = time.perf_counter() - start_time
+            trial_run_times.append(elapsed_time)
+            self.screen_warmup(duration=3)
 
         # Log results
         frame_intervals = np.array(self.win.frameIntervals)
@@ -202,6 +216,9 @@ class ScreenStimWindow:
         print(f'Specified refresh rate: {self.refresh_rate}')
         print(f'# of dropped frames: {n_dropped_frames}')
         self.win.recordFrameIntervals = False
+
+        print('Trial run times:', trial_run_times)
+        print('Mean trial run time (should be 12):', np.mean(trial_run_times))
 
     def screen_timing_test(self):
         """Do some test to measure screen timing."""
@@ -308,5 +325,6 @@ if __name__ == '__main__':
     screen.draw_text('Press any key to continue')
     screen.win.flip()
     event.waitKeys()
-    screen.test_cvep()
+    # screen.test_cvep()
+    screen.test_erp()
     # screen.screen_timing_test()

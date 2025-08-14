@@ -27,6 +27,7 @@ class LaserController:
 
     def send_lasers_values(self, values: List[int]) -> None:
         if self.teensy is not None:
+            values = values[::-1] # Reverse the sequences so that the stimuli are not mirrored
             data_str = ",".join(map(str, values)) + "\n"
             self.teensy.write(data_str.encode())  # Send data
         else:
