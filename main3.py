@@ -43,7 +43,9 @@ class StimController:
             4: 'screen_cVEP'
         }
         
-        self.df_order_table = pd.read_csv('./config/trial_orders.csv')
+        self.df_trial_orders = pd.read_parquet('./config/trial_orders.pqt')
+        self.df_obj_orders = pd.read_parquet('./config/obj_orders.pqt')
+        self.df_pictogram_orders = pd.read_parquet('./config/pictogram_orders.pqt')
         
         self.n_blocks = 3
         self.n_runs = 8
@@ -114,6 +116,13 @@ class StimController:
 
     def run_block(self, block_id: int):
         """Run a block with multiple runs"""
+
+        # Get prerandomized pictogram order
+        new_pictograms_order = self.df_pictogram_orders[f'block_{block_id}'].tolist()
+        print('New pictograms order:', new_pictograms_order)
+        self.screen.reorder_pictograms(new_pictograms_order)
+        logging.info(f'block:{block_id}; pictograms order: {new_pictograms_order}')
+
         for run_id in range(self.n_runs):
             _ = input(f'Start block: {block_id}; run: {run_id}. Press any key to continue:\n')
             logging.info(f'run_{run_id}-start')
@@ -121,6 +130,10 @@ class StimController:
             self.rest(self.run_rest_duration, text=f'Run: {run_id} complete.')
             logging.info(f'run_{run_id}-end')
 
+        # Return to original pictogram positions to prevent double indexing
+        self.screen.default_order_pictograms()
+
+        # Finish block
         self.screen.draw_text(f'Block {block_id} complete!\nPlease wait for instructions.')
         self.screen.description_text.setHeight(60)
         self.screen.win.flip()
@@ -128,20 +141,30 @@ class StimController:
     def run_run(self, run_id: int):
         """Run a single run with multiple trials"""
         # Get prerandomized conditions order
-        conditions_order = self.df_order_table[run_id]
-        # Randomize pictograms
-        pictograms_order = list(np.random.permutation(np.arange(self.n_objs)).astype(int))
-        self.screen.reorder_pictograms(pictograms_order)
-        logging.info(f'run:{run_id}; pictograms order: {pictograms_order}')
+        conditions_order = self.df_trial_orders[f'run_{run_id}'].tolist()
+        logging.info(f'run:{run_id}; conditions order: {conditions_order}')
 
         for trial_id, condition in enumerate(conditions_order):
             logging.info(f'trial_{trial_id}-start;{condition}')
-            self.run_trial(condition=condition, trial_id=trial_id)
+            self.run_trial(condition=condition, trial_id=trial_id, run_id=run_id)
             logging.info(f'trial_{trial_id}-end;{condition}')
         # return pictograms to their original order
         self.screen.default_order_pictograms()
         
-    def run_trial(self, condition: str, trial_id: int):
+    def run_trial(self, condition: str, trial_id: int, run_id: int):
+        # Select mode
+        obj_order = self.df_obj_orders[f'run_{run_id}'][f'trial_{trial_id}']
+        target
+        # Run trial based on mode
+        if condition == 0:
+            mode = 'scene'
+            protocol = 'kolkhorst'
+            codebook = self.codebook_kolkhorst[run_id, :, obj_order]
+            self.laser_controller.run_trial_erp(codebook, )
+            
+
+
+
 
 
         
@@ -222,5 +245,5 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
     controller = StimController()
-    
-    controller.rest(120, 'Run complete.')
+
+    controller.run_session()
