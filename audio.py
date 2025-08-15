@@ -11,7 +11,6 @@ class AudioController:
         self.button_box = button_box
         self.playback_interval = 3 # Play audio every 3 seconds
         self.key_press_pause_duration = (3, 5) # Pause between 3 to 4 seconds after key press
-        self.key_press_pause_duration = (0, 0.5) # Pause between 3 to 4 seconds after key press
 
         # Init marker stream
         info = StreamInfo(name='AudioCueMarkerStream', type='Marker', channel_count=1, channel_format=cf_string, nominal_srate=0, source_id='audio_marker_stream_id')
@@ -114,6 +113,7 @@ class AudioController:
 if __name__ == '__main__':
     button_box = ButtonBoxController(timeout=0.1)
     audio = AudioController('./tts/queries/psychopy_slowed', button_box=button_box)
+    audio.key_press_pause_duration = (0, 0.5) # For testing purposes
     # audio.select_speakers()
     # default_audio_devices = [
     #     'OUT 3-4 (BEHRINGER X-AIR)', # For lab PC
@@ -121,6 +121,6 @@ if __name__ == '__main__':
     #     'Speakers (High Definition Audio Device)' # For my mac
     # ]
     prefs.hardware['audioDevice'] = 'OUT 3-4 (BEHRINGER X-AIR)'
-    # while True:
-    x = audio.cue_audio('can', 'candle', 'scene')
-    print(x)
+    while True:
+        x = audio.cue_audio('can', 'candle', 'scene')
+        print(x)
