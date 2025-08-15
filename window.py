@@ -82,7 +82,8 @@ class ScreenStimWindow:
             else:
                 self.boxes[i].fillColor = 'grey'
             self.boxes[i].draw()
-            self.pictograms[i].draw()
+        for pictogram in self.pictograms:
+            pictogram.draw()
 
     def draw_sensor_box(self, color: str):
         self.sensor_box.fillColor = color
@@ -111,12 +112,17 @@ class ScreenStimWindow:
             self.win.flip()
             
     def reorder_pictograms(self, new_idc: List[int]):
-        self.pictogram_poss = [self.pictogram_poss[i] for i in new_idc]  # NOTE: Could be indexing twice.
-        self.init_pictograms()
+        # self.pictogram_poss = [self.pictogram_poss[i] for i in new_idc]  # NOTE: Could be indexing twice.
+        # self.init_pictograms()
+        new_idc = [new_idc.index(i) for i in range(len(new_idc))]
+        new_poss = [self.pictogram_poss[i] for i in new_idc]
+        for i in range(len(new_poss)):
+            self.pictograms[i].pos = new_poss[i]
     
     def default_order_pictograms(self):
-        self.pictogram_poss = [(self.stim_box_space + i*(self.stim_box_size + self.stim_box_space) - self.width // 2 + self.stim_box_size / 2, 0) for i in range(self.n_objs)]
-        self.init_pictograms()
+        new_poss = [(self.stim_box_space + i*(self.stim_box_size + self.stim_box_space) - self.width // 2 + self.stim_box_size / 2, 0) for i in range(self.n_objs)]
+        for i in range(len(new_poss)):
+            self.pictograms[i].pos = new_poss[i]
 
     def run_trial_erp(self, codebook: list, target_id: int, trial_id: int, n_stim_on_frames: int, n_stim_off_frames: int):
         """Run a single trial with multiple sequences on monitor"""
@@ -326,5 +332,16 @@ if __name__ == '__main__':
     screen.win.flip()
     event.waitKeys()
     # screen.test_cvep()
-    screen.test_erp()
+
+    new_idc = np.random.permutation(np.arange(8)).tolist()
+    print(new_idc)
+    print([screen.objects[i] for i in new_idc])
+    screen.reorder_pictograms(new_idc)
+    screen.test_erp(n_trials=1)
+
+    screen.default_order_pictograms()
+    print(list(objects.values()))
+    screen.test_erp(n_trials=1)
+
+    # screen.test_erp()
     # screen.screen_timing_test()
