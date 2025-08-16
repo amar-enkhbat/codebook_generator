@@ -1,7 +1,7 @@
 import time
 import numpy as np
 from psychopy import sound, tools, prefs
-from utils import perf_sleep
+from utils import perf_sleep, random_wait
 from button_box import ButtonBoxController
 from pylsl import StreamInfo, StreamOutlet, cf_string
 
@@ -15,11 +15,6 @@ class AudioController:
         # Init marker stream
         info = StreamInfo(name='AudioCueMarkerStream', type='Marker', channel_count=1, channel_format=cf_string, nominal_srate=0, source_id='audio_marker_stream_id')
         self.marker_outlet = StreamOutlet(info)
-
-    def random_wait(self):
-        """wait 3 to 4 seconds or values defined in self.key_press_pause_duration"""
-        val = round(np.random.uniform(self.key_press_pause_duration[0], self.key_press_pause_duration[1]), 2)
-        perf_sleep(val)
 
     def cue_audio(self, ref_obj: str, target_obj: str, mode: str):
         """Cue audio before a trial. First cue cannot be cancelled."""
@@ -41,7 +36,7 @@ class AudioController:
             if len(x):
                 button_box.marker_outlet.push_sample([1])
                 self.marker_outlet.push_sample(['button_press'])
-                self.random_wait()
+                random_wait(self.key_press_pause_duration[0], self.key_press_pause_duration[1])
                 return x
             else:
                 continue
@@ -59,7 +54,7 @@ class AudioController:
                     button_box.marker_outlet.push_sample([1])
                     audio.stop()
                     self.marker_outlet.push_sample(['button_press'])
-                    self.random_wait()
+                    random_wait(self.key_press_pause_duration[0], self.key_press_pause_duration[1])
                     return x
                 else:
                     continue
@@ -72,7 +67,7 @@ class AudioController:
                 if len(x):
                     button_box.marker_outlet.push_sample([1])
                     self.marker_outlet.push_sample(['button_press'])
-                    self.random_wait()
+                    random_wait(self.key_press_pause_duration[0], self.key_press_pause_duration[1])
                     return x
                 else:
                     continue

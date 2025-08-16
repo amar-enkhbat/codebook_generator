@@ -43,3 +43,8 @@ def perf_sleep(t: float) -> None:
     t1 = time.perf_counter() + t
     while time.perf_counter() <= t1:
         pass
+
+def random_wait(low: float, high: float):
+    """Do nothing for low to high seconds. Duration is random. Between low and high values"""
+    val = round(np.random.uniform(low, high), 2)
+    perf_sleep(val)
