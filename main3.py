@@ -13,6 +13,9 @@ from button_box import ButtonBoxController
 from audio import AudioController
 from window import ScreenStimWindow
 
+from pylsl import StreamInfo, StreamOutlet, cf_string
+
+
 class StimController:
     def __init__(self, random_seed: int=42):
         # Set random seeds for reproducibility
@@ -42,11 +45,11 @@ class StimController:
             3: 'screen_fastERP',
             4: 'screen_cVEP'
         }
-        
-        self.df_trial_orders = pd.read_parquet('./config/trial_orders.pqt')
-        self.df_obj_orders = pd.read_parquet('./config/obj_orders.pqt')
-        self.df_pictogram_orders = pd.read_parquet('./config/pictogram_orders.pqt')
-        
+
+        self.df_trial_orders = pd.read_csv('./config/trial_orders.csv')
+        self.df_obj_orders = pd.read_csv('./config/obj_orders.csv')
+        self.df_pictogram_orders = pd.read_csv('./config/pictogram_orders.csv')
+
         self.n_blocks = 3
         self.n_runs = 8
         self.n_trials = 10
@@ -73,8 +76,8 @@ class StimController:
         self.cue_audio_path = './tts/queries/psychopy_slowed'
 
         # Screen settings
-        self.erp_on_frames = self.erp_on_duration * self.refresh_rate # Should be 6 frames for 60hz monitor
-        self.erp_off_frames = self.erp_off_duration * self.refresh_rate # Should be 6 frames for 60hz monitor
+        self.erp_on_frames = int(self.erp_on_duration * self.refresh_rate) # Should be 6 frames for 60hz monitor
+        self.erp_off_frames = int(self.erp_off_duration * self.refresh_rate) # Should be 6 frames for 60hz monitor
         self.cvep_on_frames = 1
         self.screen_warmup_duration = self.trial_rest_duration  # seconds
         
@@ -89,8 +92,13 @@ class StimController:
 
         # Init screen stimulus window
         self.screen = ScreenStimWindow(self.objects)
+        
+        # Init markers for resting state
+        info = StreamInfo(name='RestingStateMarkerStream', type='Marker', channel_count=1, channel_format=cf_string, nominal_srate=0, source_id='resting_state_marker_stream_id')
+        self.marker_outlet = StreamOutlet(info)
+        
 
-    def rest(self, duration: float, text: str='Rest'):
+    def rest(self, duration: int, text: str='Rest'):
         for t in range(duration):
             start_time = time.perf_counter()
             self.screen.draw_text(text + f'\n Experiment will start in\n{duration - t} seconds.')
@@ -153,86 +161,59 @@ class StimController:
         
     def run_trial(self, condition: str, trial_id: int, run_id: int):
         # Select mode
-        obj_order = self.df_obj_orders[f'run_{run_id}'][f'trial_{trial_id}']
-        target
+        mode = condition.split('_')[0]
+        target_id = self.df_obj_orders[f'run_{run_id}'][f'trial_{trial_id}']
+        target_obj = self.objects[target_id]
+        # Get ref and play audio cue
+        ref_id = np.random.choice(np.arange(8), 1)[0]
+        ref_obj = self.objects[ref_id]
+        
         # Run trial based on mode
+        self.screen.screen_warmup(duration=self.trial_rest_duration) # Initial warmup before start of trial
+        
         if condition == 0:
-            mode = 'scene'
-            protocol = 'kolkhorst'
-            codebook = self.codebook_kolkhorst[run_id, :, obj_order]
-            self.laser_controller.run_trial_erp(codebook, )
-            
-
-
-
-
-
+            codebook = list(self.codebook_kolkhorst[run_id, :, target_id])
+            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
+            self.laser_controller.run_trial_erp(codebook, target_id, trial_id=trial_id, on_duration=self.erp_on_duration, off_duration=self.erp_off_duration)
+        elif condition == 1:
+            codebook = list(self.codebook_fast_erp[run_id, :, target_id])
+            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
+            self.laser_controller.run_trial_erp(codebook, target_id, trial_id=trial_id, on_duration=self.erp_on_duration, off_duration=self.erp_off_duration)
+        elif condition == 2:
+            codebook = list(self.codebook_cvep[run_id, :, target_id])
+            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
+            self.laser_controller.run_trial_cvep(codebook=codebook, target_id=target_id, trial_id=trial_id, on_duration=1/self.refresh_rate)
+        elif condition == 3:
+            codebook = list(self.codebook_fast_erp[run_id, :, target_id])
+            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
+            self.screen.run_trial_erp(codebook, target_id=target_id, trial_id=trial_id, n_stim_on_frames=self.erp_on_frames, n_stim_off_frames=self.erp_off_frames)
+        elif condition == 4:
+            codebook = list(self.codebook_cvep[run_id, :, target_id])
+            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
+            self.screen.run_trial_cvep(codebook, target_id=target_id, trial_id=trial_id)
+        else:
+            raise ValueError(f'Condition doesnt exist: {condition}')
         
-
         
-        
-
-
-    
-
-    
-
-    def familiarization(self):
-        while True:
-            print('Conditions:')
-            print('0: scene/erp')
-            print('1: scene/erp')
-            print('2: scene/cvep')
-            print('3: screen/erp')
-            print('4: screen/cvep')
-            condition = int(input('Select condition: [0, 1, 2, 3, 4]\n'))
-            if condition == 0:
-                self.mode = 'scene'
-                self.switch_protocol('erp')
-                self.load_codebooks_block_1()
-            elif condition == 1:
-                self.mode = 'scene'
-                self.switch_protocol('erp')
-                self.load_codebooks_block_2()
-            elif condition == 2:
-                self.mode = 'scene'
-                self.switch_protocol('cvep')
-                self.load_codebooks_block_3()
-            elif condition == 3:
-                self.mode = 'screen'
-                self.switch_protocol('erp')
-                self.load_codebooks_block_2()
-            elif condition == 4:
-                self.mode = 'screen'
-                self.switch_protocol('cvep')
-                self.load_codebooks_block_3()
-            else:
-                raise ValueError('Condition must be values between 0~4')
-            
-            self.run_run()
-
-            if input('Continue familiarization? y/n\n') != 'y':
-                break
+        perf_sleep(self.trial_rest_duration) # 3 second rest after trials
     
     def resting_state_recording(self):
-        self.draw_text('.')
-        self.description_text.setHeight(200)
-        self.draw_text()
-        self.win.flip()
+        self.screen.draw_text('.')
+        self.screen.description_text.setHeight(200)
+        self.screen.win.flip()
         if input('Start eyes open recording? y/n\n') == 'y':
-            self.post_marker('Start eyes open')
+            self.marker_outlet.push_sample(['Start eyes open'])
             perf_sleep(150)
-            self.post_marker('End eyes open')
+            self.marker_outlet.push_sample(['End eyes open'])
 
         if input('Start eyes closed recording? y/n\n') == 'y':
-            self.post_marker('Start eyes closed')
+            self.marker_outlet.push_sample(['Start eyes closed'])
             perf_sleep(150)
-            self.post_marker('End eyes closed')
+            self.marker_outlet.push_sample(['End eyes closed'])
 
-        self.draw_text('Resting state recording finished')
-        self.description_text.setHeight(50)
-        self.draw_text()
-        self.win.flip()
+        self.screen.draw_text('Resting state recording finished')
+        self.screen.description_text.setHeight(50)
+        self.screen.win.flip()
         
 
 if __name__ == "__main__":
@@ -245,5 +226,4 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
     controller = StimController()
-
     controller.run_session()
