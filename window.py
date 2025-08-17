@@ -75,7 +75,7 @@ class ScreenStimWindow:
         
     def draw_boxes(self, sequence: List[int]):
         # for val, box in zip(sequence, self.boxes):
-        for i in range(len(sequence)):
+        for i in range(len(self.boxes)):
             if sequence[i] == 1:
                 self.boxes[i].fillColor = 'white'
             elif sequence[i] == 0:
@@ -84,7 +84,7 @@ class ScreenStimWindow:
                 self.boxes[i].fillColor = 'grey'
             self.boxes[i].draw()
             
-    def draw_pictograms(self)
+    def draw_pictograms(self):
         for pictogram in self.pictograms:
             pictogram.draw()
 
@@ -101,7 +101,7 @@ class ScreenStimWindow:
         for _ in range(int(hide_duration * self.refresh_rate)):  # 1 second of flips at 60Hz
             self.disable_stims()
             
-    def screen_warmup(self, duration: float=1.0):
+    def screen_warmup(self, duration: float=1.0, draw_pictograms=True):
         """Flip screen at refresh rate for dt seconds to warmup.
 
         Args:
@@ -110,7 +110,8 @@ class ScreenStimWindow:
         for _ in range(int(duration * self.refresh_rate)):  # 1 second of flips at 60Hz
             self.draw_sensor_box('black')
             self.draw_boxes([0] * 8)
-            self.draw_pictograms()
+            if draw_pictograms:
+                self.draw_pictograms()
             self.win.flip()
             
     def reorder_pictograms(self, new_idc: List[int]):
@@ -172,10 +173,6 @@ class ScreenStimWindow:
     def run_trial_quick_flash(self, n_flashes: int, trial_id: int, n_stim_on_frames: int=1, ):
         """Run a quick flashing on a monitor"""
         # NOTE: n_stim_stim_on_frames is equal 1 to reflect the speed of cVEP
-        
-        # Init flash box with no pictograms
-        self.init_boxes(n_boxes=1)
-        
         # Start trial
         self.marker_outlet.push_sample([self.marker_ids['trial_start'] + trial_id]) # Push trial start marker
         for flash_id in range(n_flashes):
@@ -257,7 +254,11 @@ class ScreenStimWindow:
         
     def test_quick_flash(self, n_trials: int=8):
         """Test Run CVEP protocol"""
-        self.screen_warmup(duration=3)
+        # Init flash box with no pictograms
+        del self.boxes
+        self.init_boxes(n_boxes=1)
+        
+        self.screen_warmup(duration=3, draw_pictograms=False)
         self.win.recordFrameIntervals = True
         # run 10 trials with 1 warmup in-between
 
@@ -266,8 +267,8 @@ class ScreenStimWindow:
             start_time = time.perf_counter()
             self.run_trial_quick_flash(n_flashes=12, trial_id=trial_id, n_stim_on_frames=1)
             elapsed_time = time.perf_counter() - start_time
+            self.screen_warmup(3, draw_pictograms=False)
             trial_run_times.append(elapsed_time)
-            self.screen_warmup(duration=3)
 
         # Log results
         frame_intervals = np.array(self.win.frameIntervals)
@@ -390,16 +391,17 @@ if __name__ == '__main__':
     screen.win.flip()
     event.waitKeys()
     # screen.test_cvep()
+    screen.test_quick_flash(n_trials=2)
 
-    new_idc = np.random.permutation(np.arange(8)).tolist()
-    print(new_idc)
-    print([screen.objects[i] for i in new_idc])
-    screen.reorder_pictograms(new_idc)
-    screen.test_erp(n_trials=1)
+    # new_idc = np.random.permutation(np.arange(8)).tolist()
+    # print(new_idc)
+    # print([screen.objects[i] for i in new_idc])
+    # screen.reorder_pictograms(new_idc)
+    # screen.test_erp(n_trials=1)
 
-    screen.default_order_pictograms()
-    print(list(objects.values()))
-    screen.test_erp(n_trials=1)
+    # screen.default_order_pictograms()
+    # print(list(objects.values()))
+    # screen.test_erp(n_trials=1)
 
     # screen.test_erp()
     # screen.screen_timing_test()
