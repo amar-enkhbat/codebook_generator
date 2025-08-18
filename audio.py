@@ -10,11 +10,12 @@ class AudioController:
         self.audio_path = audio_path
         self.button_box = button_box
         self.playback_interval = 3 # Play audio every 3 seconds
-        self.key_press_pause_duration = (3, 5) # Pause between 3 to 4 seconds after key press
+        self.key_press_pause_duration = (1, 3) # Pause between 3 to 4 seconds after key press
 
         # Init marker stream
         info = StreamInfo(name='AudioCueMarkerStream', type='Marker', channel_count=1, channel_format=cf_string, nominal_srate=0, source_id='audio_marker_stream_id')
         self.marker_outlet = StreamOutlet(info)
+        prefs.hardware['audioDevice'] = 'OUT 3-4 (BEHRINGER X-AIR)'
 
     def cue_audio(self, ref_obj: str, target_obj: str, mode: str):
         """Cue audio before a trial. First cue cannot be cancelled."""
@@ -34,7 +35,7 @@ class AudioController:
         while time.perf_counter() < end_time:
             x = self.button_box.read()
             if len(x):
-                button_box.marker_outlet.push_sample([1])
+                self.button_box.marker_outlet.push_sample([1])
                 self.marker_outlet.push_sample(['button_press'])
                 random_wait(self.key_press_pause_duration[0], self.key_press_pause_duration[1])
                 return x
@@ -51,7 +52,7 @@ class AudioController:
             while time.perf_counter() - start_time < duration:
                 x = self.button_box.read()
                 if len(x):
-                    button_box.marker_outlet.push_sample([1])
+                    self.button_box.marker_outlet.push_sample([1])
                     audio.stop()
                     self.marker_outlet.push_sample(['button_press'])
                     random_wait(self.key_press_pause_duration[0], self.key_press_pause_duration[1])
@@ -65,7 +66,7 @@ class AudioController:
             while time.perf_counter() < end_time:
                 x = self.button_box.read()
                 if len(x):
-                    button_box.marker_outlet.push_sample([1])
+                    self.button_box.marker_outlet.push_sample([1])
                     self.marker_outlet.push_sample(['button_press'])
                     random_wait(self.key_press_pause_duration[0], self.key_press_pause_duration[1])
                     return x

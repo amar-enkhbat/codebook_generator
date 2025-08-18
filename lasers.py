@@ -7,6 +7,7 @@ from pylsl import StreamOutlet, StreamInfo
 from utils import perf_sleep, load_codebooks_block_2, load_codebooks_block_3
 
 class LaserController:
+    """Laser is always on except right before start of a trial"""
     def __init__(self, port: str='COM7'):
         self.marker_ids = {
             'non_target': 100,
@@ -24,6 +25,9 @@ class LaserController:
         # Init marker stream
         info = StreamInfo(name='LaserMarkerStream', type='Marker', channel_count=1, channel_format=5, nominal_srate=0, source_id='laser_marker_stream_id')
         self.marker_outlet = StreamOutlet(info)
+
+        # Turn on lasers
+        self.on()
 
     def send_lasers_values(self, values: List[int]) -> None:
         if self.teensy is not None:
