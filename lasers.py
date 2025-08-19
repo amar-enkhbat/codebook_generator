@@ -95,6 +95,24 @@ class LaserController:
 
         self.marker_outlet.push_sample([self.marker_ids['trial_end'] + trial_id])
         self.off()
+        
+    def test_quick_flash(self):
+        quick_flash_wait_duration = (0.75, 1)
+        """Run a quick flashing on a monitor"""
+        # NOTE: n_stim_stim_on_frames is equal 1 to reflect the speed of cVEP
+        # Start trial
+        seq = [0, 0, 0, 1, 0, 0, 0, 0]
+        for trial_id in range(8):
+            self.marker_outlet.push_sample([self.marker_ids['trial_start'] + trial_id]) # Push trial start marker
+            for flash_id in range(12):
+                end_time = time.perf_counter() + 1 / 60
+                self.send_lasers_values(seq)
+                self.marker_outlet.push_sample([self.marker_ids['target'] + 1]) # Push target marker
+                while time.perf_counter() <= end_time:
+                    pass
+                
+            self.marker_outlet.push_sample([self.marker_ids['trial_end'] + trial_id]) # Push trial start marker
+        
     
     def test_erp(self, n_trials=8):
         """Test Run ERP protocol"""
