@@ -15,7 +15,7 @@ class ScreenStimWindow:
             'trial_start': 200,
             'trial_end': 210
         }
-        self.quick_flash_wait_duration = (0.75, 1)
+        self.quick_flash_wait_duration = (0.75, 1) # 0.75 to 1 seconds
         
 
         self.n_objs = len(objects)
@@ -51,6 +51,8 @@ class ScreenStimWindow:
         
     def init_boxes(self, n_boxes: int):
         # Boxes behind pictograms
+        if n_boxes == 1:
+            self.stim_box_poss = [(0, 0)]
         self.boxes = []
         for i in range(n_boxes):
             box = visual.Rect(self.win, width=self.stim_box_size, height=self.stim_box_size, pos=self.stim_box_poss[i], units='pix', color='black', autoLog=False)
@@ -117,7 +119,7 @@ class ScreenStimWindow:
     def reorder_pictograms(self, new_idc: List[int]):
         # self.pictogram_poss = [self.pictogram_poss[i] for i in new_idc]  # NOTE: Could be indexing twice.
         # self.init_pictograms()
-        new_idc = [new_idc.index(i) for i in range(len(new_idc))]
+        # new_idc = [new_idc.index(i) for i in range(len(new_idc))]
         new_poss = [self.pictogram_poss[i] for i in new_idc]
         for i in range(len(new_poss)):
             self.pictograms[i].pos = new_poss[i]
@@ -168,7 +170,14 @@ class ScreenStimWindow:
                 self.marker_outlet.push_sample([self.marker_ids['non_target'] + target_id]) # Push non-target marker
             else:
                 ValueError(f'Unknown target value: {is_target}')
+                    
         self.marker_outlet.push_sample([self.marker_ids['trial_end'] + trial_id]) # Push trial start marker
+
+        # Rest stims after trial
+        self.draw_sensor_box('black')
+        self.draw_boxes([0] * 8)
+        self.draw_pictograms()
+        self.win.flip()
         
     def run_trial_quick_flash(self, n_flashes: int, trial_id: int, n_stim_on_frames: int=1, ):
         """Run a quick flashing on a monitor"""
@@ -179,30 +188,34 @@ class ScreenStimWindow:
             self.draw_sensor_box('black')
             self.draw_boxes([0] * 8)
             self.win.flip()
-            random_wait(self.quick_flash_wait_duration[0], self.quick_flash_wait_duration[1])
+            # Random wait between flashes (0.75~1s) == (45~60 frames)
+            self.screen_warmup(duration=round(np.random.uniform(self.quick_flash_wait_duration[0], self.quick_flash_wait_duration[1]), 2))
             for i in range(n_stim_on_frames):
                 self.draw_sensor_box('white')
                 self.draw_boxes([1])
                 self.win.flip()
                 # If first sequence and is_target is equal to 1 push to target outlet
                 if i == 0:
-                    self.marker_outlet.push_sample([self.marker_ids['target'] + 1]) # Push target marker
+                    self.marker_outlet.push_sample([self.marker_ids['target'] + 0]) # Push target marker
             
         self.marker_outlet.push_sample([self.marker_ids['trial_end'] + trial_id]) # Push trial start marker
 
     def test_erp(self, n_trials: int=8):
         """Test Run ERP protocol"""
-        self.screen_warmup(duration=3)
-        self.win.recordFrameIntervals = True
+        new_idc = [1, 5, 0, 7, 2, 4, 3, 6]
+        self.reorder_pictograms(new_idc)
+        
         # run 10 trials with 1 warmup in-between
         codebook = load_codebooks_block_2()[0].astype(int).tolist()
         n_on_frames = 6 # 0.1 seconds
         n_off_frames = 9 # 0.15 seconds
-
+        target_id = 0
         trial_run_times = []
+        self.screen_warmup(duration=3)
+        self.win.recordFrameIntervals = True
         for trial_id in range(n_trials):
             start_time = time.perf_counter()
-            self.run_trial_erp(codebook, target_id=0, trial_id=trial_id, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
+            self.run_trial_erp(codebook, target_id=new_idc[target_id], trial_id=trial_id, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
             elapsed_time = time.perf_counter() - start_time
             trial_run_times.append(elapsed_time)
             self.screen_warmup(duration=3)
@@ -371,9 +384,7 @@ class ScreenStimWindow:
         event.waitKeys()
         self.win.close()
 
-if __name__ == '__main__':
-    from window import ScreenStimWindow
-
+def main():
     objects = {
         0: 'bottle', 
         1: 'bandage', 
@@ -390,8 +401,9 @@ if __name__ == '__main__':
     screen.draw_text('Press any key to continue')
     screen.win.flip()
     event.waitKeys()
+    screen.test_erp()
     # screen.test_cvep()
-    screen.test_quick_flash(n_trials=2)
+    # screen.test_quick_flash(n_trials=8)
 
     # new_idc = np.random.permutation(np.arange(8)).tolist()
     # print(new_idc)
@@ -405,3 +417,7 @@ if __name__ == '__main__':
 
     # screen.test_erp()
     # screen.screen_timing_test()
+
+
+if __name__ == '__main__':
+    main()

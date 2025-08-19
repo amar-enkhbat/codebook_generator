@@ -46,9 +46,10 @@ class StimController:
             4: 'screen_cVEP'
         }
 
-        self.df_trial_orders = pd.read_csv('./config/trial_orders.csv')
-        self.df_obj_orders = pd.read_csv('./config/obj_orders.csv')
-        self.df_pictogram_orders = pd.read_csv('./config/pictogram_orders.csv')
+        self.df_trial_orders = pd.read_csv('./config/trial_orders.csv', index_col=0)
+        self.df_obj_orders = pd.read_csv('./config/obj_orders.csv', index_col=0)
+        self.df_pictogram_orders = pd.read_csv('./config/pictogram_orders.csv', index_col=0)
+        self.new_pictograms_order = np.arange(8).tolist()
 
         self.n_blocks = 3
         self.n_runs = 8
@@ -105,13 +106,11 @@ class StimController:
             # self.screen.description_text.setHeight(60)
             self.screen.win.flip()
             perf_sleep(1 - 1/self.refresh_rate)
-            print(time.perf_counter() - start_time)
-
 
     def run_session(self):
         for block_id in range(self.n_blocks):
             # Start block
-            _ = input(f'Press any key to start block: {block_id}')
+            _ = input(f'Press any key to start block: {block_id}\n')
             logging.info(f'block_{block_id}-start')
             self.run_block(block_id)
             self.rest(self.block_rest_duration, text=f'Block: {block_id} complete.')
@@ -126,10 +125,10 @@ class StimController:
         """Run a block with multiple runs"""
 
         # Get prerandomized pictogram order
-        new_pictograms_order = self.df_pictogram_orders[f'block_{block_id}'].tolist()
-        print('New pictograms order:', new_pictograms_order)
-        self.screen.reorder_pictograms(new_pictograms_order)
-        logging.info(f'block:{block_id}; pictograms order: {new_pictograms_order}')
+        self.new_pictograms_order = self.df_pictogram_orders[f'block_{block_id}'].tolist()
+        print('New pictograms order:', self.new_pictograms_order)
+        self.screen.reorder_pictograms(self.new_pictograms_order)
+        logging.info(f'block:{block_id}; pictograms order: {self.new_pictograms_order}')
 
         for run_id in range(self.n_runs):
             _ = input(f'Start block: {block_id}; run: {run_id}. Press any key to continue:\n')
@@ -161,41 +160,56 @@ class StimController:
         
     def run_trial(self, condition: str, trial_id: int, run_id: int):
         # Select mode
-        mode = condition.split('_')[0]
+        if condition in [0, 1, 2]:
+            mode = 'scene'
+        elif condition in [3, 4]:
+            mode = 'screen'
+        else:
+            ValueError(f'Condition not found: {condition}')
         target_id = self.df_obj_orders[f'run_{run_id}'][f'trial_{trial_id}']
+
         target_obj = self.objects[target_id]
         # Get ref and play audio cue
-        ref_id = np.random.choice(np.arange(8), 1)[0]
+        ref_id = np.random.choice([i for i in range(self.n_objs) if i!=target_id])
         ref_obj = self.objects[ref_id]
         
-        # Run trial based on mode
-        self.screen.screen_warmup(duration=self.trial_rest_duration) # Initial warmup before start of trial
-        
+        # Run trial based on mode        
         if condition == 0:
-            codebook = list(self.codebook_kolkhorst[run_id, :, target_id])
+            codebook = list(self.codebook_kolkhorst[run_id])
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
+            self.laser_controller.off()
+            perf_sleep(2)
             self.laser_controller.run_trial_erp(codebook, target_id, trial_id=trial_id, on_duration=self.erp_on_duration, off_duration=self.erp_off_duration)
         elif condition == 1:
-            codebook = list(self.codebook_fast_erp[run_id, :, target_id])
+            codebook = list(self.codebook_fast_erp[run_id])
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
+            self.laser_controller.off()
+            perf_sleep(2)
             self.laser_controller.run_trial_erp(codebook, target_id, trial_id=trial_id, on_duration=self.erp_on_duration, off_duration=self.erp_off_duration)
         elif condition == 2:
-            codebook = list(self.codebook_cvep[run_id, :, target_id])
+            codebook = list(self.codebook_cvep[run_id])
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
+            self.laser_controller.off()
+            perf_sleep(2)
             self.laser_controller.run_trial_cvep(codebook=codebook, target_id=target_id, trial_id=trial_id, on_duration=1/self.refresh_rate)
         elif condition == 3:
-            codebook = list(self.codebook_fast_erp[run_id, :, target_id])
+            codebook = list(self.codebook_fast_erp[run_id])
+            target_id = self.new_pictograms_order[target_id]
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
+            self.screen.screen_warmup(2)
             self.screen.run_trial_erp(codebook, target_id=target_id, trial_id=trial_id, n_stim_on_frames=self.erp_on_frames, n_stim_off_frames=self.erp_off_frames)
         elif condition == 4:
-            codebook = list(self.codebook_cvep[run_id, :, target_id])
+            codebook = list(self.codebook_cvep[run_id])
+            target_id = self.new_pictograms_order[target_id]
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
+            self.screen.screen_warmup(2)
             self.screen.run_trial_cvep(codebook, target_id=target_id, trial_id=trial_id)
         else:
             raise ValueError(f'Condition doesnt exist: {condition}')
         
         
         perf_sleep(self.trial_rest_duration) # 3 second rest after trials
+        self.laser_controller.on()
     
     def resting_state_recording(self):
         self.screen.draw_text('.')
@@ -214,6 +228,7 @@ class StimController:
         self.screen.draw_text('Resting state recording finished')
         self.screen.description_text.setHeight(50)
         self.screen.win.flip()
+
         
 
 if __name__ == "__main__":
