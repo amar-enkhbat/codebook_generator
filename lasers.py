@@ -31,7 +31,15 @@ class LaserController:
 
     def send_lasers_values(self, values: List[int]) -> None:
         if self.teensy is not None:
-            values = values[::-1] # Reverse the sequences so that the stimuli are not mirrored
+            # Fix laser positions that were changed
+            if 1 in values:
+                if values.index(1) == 3:
+                    values = [0, 0, 0, 0, 0, 1, 0, 0]
+                elif values.index(1) == 4:
+                    values = [0, 0, 0, 1, 0, 0, 0, 0]
+                elif values.index(1) == 5:
+                    values = [0, 0, 0, 0, 1, 0, 0, 0]
+            values = values[::-1] # Mirror the sequences so that the stimuli are correctly presented
             data_str = ",".join(map(str, values)) + "\n"
             self.teensy.write(data_str.encode())  # Send data
         else:
@@ -131,13 +139,42 @@ class LaserController:
         print('Trial run times:', trial_run_times)
         print('Mean trial run time (should be 12):', np.mean(trial_run_times))
 
+    def test_quick_flash(self):
+        from utils import random_wait
+        seq = [0, 0, 0, 0, 1, 0, 0, 0]
+        for trial_id in range(8):
+            self.marker_outlet.push_sample([self.marker_ids['trial_start'] + trial_id])
+            for flash_id in range(12):
+                end_time = time.perf_counter() + 1/60
+                self.send_lasers_values(seq)
+                self.marker_outlet.push_sample([self.marker_ids['trial_end'] + trial_id])
+                while time.perf_counter() <= end_time:
+                    pass
+                self.off()
+                random_wait(0.75, 1)
+
     def close(self) -> None:
         if self.teensy is not None:
             self.teensy.close()
 
+    def test_laser_order(self) -> None:
+        while True:
+            try:
+                for i in range(8):
+                    seq = [0] * 8
+                    seq[i] = 1
+                    print(seq)
+                    self.send_lasers_values(seq)
+                    perf_sleep(1)
+            except KeyboardInterrupt:
+                break
 
 if __name__ == '__main__':
     lasers = LaserController()
+    lasers.off()
+    
     _ = input('Press any key to continue.\n')
+    # lasers.test_laser_order()
+    # lasers.test_quick_flash()
     # lasers.test_erp(8)
-    lasers.test_cvep(8)
+    # lasers.test_cvep(8)
