@@ -4,7 +4,7 @@ import pylsl
 def main():
     vsync_sensor = serial.Serial('COM8', 115200, timeout=0.001)
     vsync_sensor.reset_input_buffer()
-    vsync_sensor.write(b'1') # Start sensor
+    vsync_sensor.write(b'1') # Define screen OFF by sending code
 
     text = ""
     for _ in range(100):

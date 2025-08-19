@@ -397,9 +397,10 @@ def main():
     }
     screen = ScreenStimWindow(objects)
     # Set sensor box to black
-    screen.draw_sensor_box('black')
-    screen.draw_text('Press any key to continue')
-    screen.win.flip()
+    for _ in range(300):
+        screen.draw_sensor_box('black')
+        screen.draw_text('Press any key to continue')
+        screen.win.flip()
     event.waitKeys()
     screen.test_erp()
     # screen.test_cvep()
