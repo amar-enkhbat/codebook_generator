@@ -4,7 +4,7 @@ from typing import List
 import time
 import numpy as np
 from pylsl import StreamOutlet, StreamInfo
-from utils import perf_sleep, load_codebooks_block_2, load_codebooks_block_3
+from utils import perf_sleep, load_codebooks_block_2, load_codebooks_block_3, load_codebooks_block_1
 
 class LaserController:
     """Laser is always on except right before start of a trial"""
@@ -66,6 +66,7 @@ class LaserController:
     def run_trial_erp(self, codebook: List[int], target_id: int, trial_id: int, on_duration: float=0.1, off_duration: float=0.15):
         """Run a single trial with multiple sequences on objects using lasers"""
         self.marker_outlet.push_sample([self.marker_ids['trial_start'] + trial_id]) # Push trial start marker
+        print('Codebook:', len(codebook))
         for sequence in codebook:
             is_target = sequence[target_id]
             # Turn on lasers
@@ -129,10 +130,12 @@ class LaserController:
     def test_erp(self, n_trials=8):
         """Test Run ERP protocol"""
         codebook = load_codebooks_block_2()[0].astype(int).tolist()
+        codebook = load_codebooks_block_1()[0].astype(int).tolist()
 
         trial_run_times = []
         for trial_id in range(n_trials):
             start_time = time.perf_counter()
+            print(len(codebook))
             self.run_trial_erp(codebook, target_id=0, trial_id=trial_id, on_duration=0.1, off_duration=0.15)
             elapsed_time = time.perf_counter() - start_time
             trial_run_times.append(elapsed_time)
@@ -170,6 +173,7 @@ class LaserController:
                     pass
                 self.off()
                 random_wait(0.75, 1)
+            perf_sleep(3)
 
     def close(self) -> None:
         if self.teensy is not None:
@@ -194,5 +198,5 @@ if __name__ == '__main__':
     _ = input('Press any key to continue.\n')
     # lasers.test_laser_order()
     # lasers.test_quick_flash()
-    # lasers.test_erp(8)
+    lasers.test_erp(8)
     # lasers.test_cvep(8)
