@@ -57,9 +57,8 @@ class StimController:
         self.trial_duration = 12
         self.trial_duration_kolkhorst = 24
         self.trial_rest_duration = 3 # NOTE: check if 3 seconds is enough
-        self.run_rest_duration = 10
+        self.run_rest_duration = 60
         self.block_rest_duration = 60
-        self.resting_state_duration = 10
         
         # Screen settings
         self.refresh_rate = 60 # Hz
@@ -85,7 +84,6 @@ class StimController:
         
         # Init laser controller
         self.laser_controller = LaserController()
-        self.verify_lasers = False
 
         # Init button box controller
         self.button_box_controller = ButtonBoxController()
@@ -109,49 +107,7 @@ class StimController:
             self.screen.win.flip()
             perf_sleep(1 - 1/self.refresh_rate)
 
-    def run_quick_flash_aser(self, n_trials: int=8):
-        """Test Run CVEP protocol"""
-        # Init flash box with no pictograms
-
-
-        perf
-        self.marker_outlet.push_sample(['Start fast flash'])
-        for trial_id in range(n_trials):
-            self.screen.run_trial_quick_flash(n_flashes=12, trial_id=trial_id, n_stim_on_frames=1)
-            self.screen.screen_warmup(3, draw_pictograms=False)
-        self.marker_outlet.push_sample(['End fast flash'])
-
-        # Reset stim boxes on screen
-        del self.screen.boxes
-        self.screen.init_boxes(n_boxes=self.n_objs)
-        self.screen.screen_warmup(duration=3)
-
-    # def run_quick_flash(self, n_trials: int=8):
-    #     """Test Run CVEP protocol"""
-    #     # Init flash box with no pictograms
-    #     del self.screen.boxes
-    #     self.screen.init_boxes(n_boxes=1)
-
-    #     self.screen.screen_warmup(duration=3, draw_pictograms=False)
-    #     self.marker_outlet.push_sample(['Start fast flash'])
-    #     for trial_id in range(n_trials):
-    #         self.screen.run_trial_quick_flash(n_flashes=12, trial_id=trial_id, n_stim_on_frames=1)
-    #         self.screen.screen_warmup(3, draw_pictograms=False)
-    #     self.marker_outlet.push_sample(['End fast flash'])
-
-    #     # Reset stim boxes on screen
-    #     del self.screen.boxes
-    #     self.screen.init_boxes(n_boxes=self.n_objs)
-    #     self.screen.screen_warmup(duration=3)
-
     def run_session(self):
-        if input(f'Press any key to start resting state recording:') == 'y':
-            self.resting_state_recording()
-
-        if input(f'Press any key to start fast flash recording:') == 'y':
-            self.screen.test_quick_flash(8)
-        
-        # Start experiment
         for block_id in range(self.n_blocks):
             # Start block
             _ = input(f'Press any key to start block: {block_id}\n')
@@ -203,6 +159,7 @@ class StimController:
         self.screen.default_order_pictograms()
         
     def run_trial(self, condition: str, trial_id: int, run_id: int):
+        # Ready screen before trial
         # Select mode
         if condition in [0, 1, 2]:
             mode = 'scene'
@@ -211,57 +168,46 @@ class StimController:
         else:
             ValueError(f'Condition not found: {condition}')
         target_id = self.df_obj_orders[f'run_{run_id}'][f'trial_{trial_id}']
+
         target_obj = self.objects[target_id]
         # Get ref and play audio cue
         ref_id = np.random.choice([i for i in range(self.n_objs) if i!=target_id])
         ref_obj = self.objects[ref_id]
-        print(f'target obj: {target_obj}, ref obj: {ref_obj}')
+        
         # Run trial based on mode        
         if condition == 0:
-            codebook = self.codebook_kolkhorst[run_id].tolist()
+            codebook = list(self.codebook_kolkhorst[run_id])
+            perf_sleep(1)
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
             self.laser_controller.off()
-            # Verify target
-            if self.verify_lasers:
-                self.laser_controller.send_lasers_values([0 if i!= target_id else 1 for i in range(8)])
-                perf_sleep(1)
-                self.laser_controller.send_lasers_values([0] * 8)
-                perf_sleep(1)
+            perf_sleep(2)
             self.laser_controller.run_trial_erp(codebook, target_id, trial_id=trial_id, on_duration=self.erp_on_duration, off_duration=self.erp_off_duration)
         elif condition == 1:
-            codebook = self.codebook_fast_erp[run_id].tolist()
+            codebook = list(self.codebook_fast_erp[run_id])
+            perf_sleep(1)
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
             self.laser_controller.off()
-            # Verify target
-            if self.verify_lasers:
-                self.laser_controller.send_lasers_values([0 if i!= target_id else 1 for i in range(8)])
-                perf_sleep(1)
-                self.laser_controller.send_lasers_values([0] * 8)
-                perf_sleep(1)
+            perf_sleep(2)
             self.laser_controller.run_trial_erp(codebook, target_id, trial_id=trial_id, on_duration=self.erp_on_duration, off_duration=self.erp_off_duration)
         elif condition == 2:
-            codebook = self.codebook_cvep[run_id].tolist()
+            codebook = list(self.codebook_cvep[run_id])
+            perf_sleep(1)
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
             self.laser_controller.off()
-            # Verify target
-            if self.verify_lasers:
-                self.laser_controller.send_lasers_values([0 if i!= target_id else 1 for i in range(8)])
-                perf_sleep(1)
-                self.laser_controller.send_lasers_values([0] * 8)
-                perf_sleep(1)
+            perf_sleep(2)
             self.laser_controller.run_trial_cvep(codebook=codebook, target_id=target_id, trial_id=trial_id, on_duration=1/self.refresh_rate)
         elif condition == 3:
-            codebook = self.codebook_fast_erp[run_id].tolist()
+            codebook = list(self.codebook_fast_erp[run_id])
             target_id = self.new_pictograms_order[target_id]
+            self.screen.screen_warmup(1)
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
-            self.laser_controller.off()
             self.screen.screen_warmup(2)
             self.screen.run_trial_erp(codebook, target_id=target_id, trial_id=trial_id, n_stim_on_frames=self.erp_on_frames, n_stim_off_frames=self.erp_off_frames)
         elif condition == 4:
-            codebook = self.codebook_cvep[run_id].tolist()
+            codebook = list(self.codebook_cvep[run_id])
             target_id = self.new_pictograms_order[target_id]
+            self.screen.screen_warmup(1)
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
-            self.laser_controller.off()
             self.screen.screen_warmup(2)
             self.screen.run_trial_cvep(codebook, target_id=target_id, trial_id=trial_id)
         else:
@@ -277,12 +223,12 @@ class StimController:
         self.screen.win.flip()
         if input('Start eyes open recording? y/n\n') == 'y':
             self.marker_outlet.push_sample(['Start eyes open'])
-            perf_sleep(self.resting_state_duration)
+            perf_sleep(150)
             self.marker_outlet.push_sample(['End eyes open'])
 
         if input('Start eyes closed recording? y/n\n') == 'y':
             self.marker_outlet.push_sample(['Start eyes closed'])
-            perf_sleep(self.resting_state_duration)
+            perf_sleep(150)
             self.marker_outlet.push_sample(['End eyes closed'])
 
         self.screen.draw_text('Resting state recording finished')
@@ -301,8 +247,4 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
     controller = StimController()
-    controller.verify_lasers = True
     controller.run_session()
-    
-
-
