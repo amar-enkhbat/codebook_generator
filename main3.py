@@ -86,6 +86,7 @@ class StimController:
         # Init laser controller
         self.laser_controller = LaserController()
         self.verify_lasers = False
+        self.verify_screen = False
 
         # Init button box controller
         self.button_box_controller = ButtonBoxController()
@@ -255,6 +256,12 @@ class StimController:
             target_id = self.new_pictograms_order[target_id]
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
             self.laser_controller.off()
+            # Verify target
+            if self.verify_screen:
+                # 1 second on then off
+                self.screen.run_trial_cvep(np.ones((60, self.n_objs)), 0, 0)
+                # 1 second off
+                self.screen.screen_warmup(1)
             self.screen.screen_warmup(2)
             self.screen.run_trial_erp(codebook, target_id=target_id, trial_id=trial_id, n_stim_on_frames=self.erp_on_frames, n_stim_off_frames=self.erp_off_frames)
         elif condition == 4:
@@ -262,6 +269,12 @@ class StimController:
             target_id = self.new_pictograms_order[target_id]
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
             self.laser_controller.off()
+            # Verify target
+            if self.verify_screen:
+                # 1 second on then off
+                self.screen.run_trial_cvep(np.ones((60, self.n_objs)), 0, 0)
+                # 1 second off
+                self.screen.screen_warmup(1)
             self.screen.screen_warmup(2)
             self.screen.run_trial_cvep(codebook, target_id=target_id, trial_id=trial_id)
         else:
@@ -302,6 +315,7 @@ if __name__ == "__main__":
     )
     controller = StimController()
     controller.verify_lasers = True
+    controller.verify_screen = True
     controller.run_session()
     
 
