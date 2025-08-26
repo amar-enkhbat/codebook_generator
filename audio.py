@@ -27,7 +27,6 @@ class AudioController:
         audio.play()
         start_time = time.perf_counter()
         perf_sleep(duration)
-        self.marker_outlet.push_sample(['stop'])
         _ = self.button_box.read() # Flush previous key presses
         
         # 3-second pause between playbacks, checking for key press
@@ -37,6 +36,7 @@ class AudioController:
             if len(x):
                 self.button_box.marker_outlet.push_sample([1])
                 self.marker_outlet.push_sample(['button_press'])
+                self.marker_outlet.push_sample(['stop'])
                 random_wait(self.key_press_pause_duration[0], self.key_press_pause_duration[1])
                 return x
             else:
@@ -55,11 +55,11 @@ class AudioController:
                     self.button_box.marker_outlet.push_sample([1])
                     audio.stop()
                     self.marker_outlet.push_sample(['button_press'])
+                    self.marker_outlet.push_sample(['stop'])
                     random_wait(self.key_press_pause_duration[0], self.key_press_pause_duration[1])
                     return x
                 else:
                     continue
-            self.marker_outlet.push_sample(['stop'])
 
             # 3-second pause between playbacks, still checking for input
             end_time = time.perf_counter() + 3
@@ -68,6 +68,7 @@ class AudioController:
                 if len(x):
                     self.button_box.marker_outlet.push_sample([1])
                     self.marker_outlet.push_sample(['button_press'])
+                    self.marker_outlet.push_sample(['stop'])
                     random_wait(self.key_press_pause_duration[0], self.key_press_pause_duration[1])
                     return x
                 else:
