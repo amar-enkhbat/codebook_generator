@@ -40,14 +40,8 @@ class LaserController:
 
     def send_lasers_values(self, values: List[int]) -> None:
         if self.teensy is not None:
-            # Fix laser positions that were changed
-            if 1 in values:
-                if values.index(1) == 3:
-                    values = [0, 0, 0, 0, 0, 1, 0, 0]
-                elif values.index(1) == 4:
-                    values = [0, 0, 0, 1, 0, 0, 0, 0]
-                elif values.index(1) == 5:
-                    values = [0, 0, 0, 0, 1, 0, 0, 0]
+            new_order = [0, 1, 2, 4, 5, 3, 6, 7]
+            values = [values[i] for i in new_order]
             values = values[::-1] # Mirror the sequences so that the stimuli are correctly presented
             data_str = ",".join(map(str, values)) + "\n"
             self.teensy.write(data_str.encode())  # Send data
@@ -121,7 +115,7 @@ class LaserController:
     def test_erp(self, n_trials=8):
         """Test Run ERP protocol"""
         codebook = load_codebooks_block_2()[0].astype(int).tolist()
-        codebook = load_codebooks_block_1()[0].astype(int).tolist()
+        # codebook = load_codebooks_block_1()[0].astype(int).tolist()
 
         trial_run_times = []
         for trial_id in range(n_trials):
@@ -206,7 +200,7 @@ if __name__ == '__main__':
     lasers.on()
     _ = input('Press any key to continue.\n')
     lasers.off()
-    # lasers.test_laser_order()
-    lasers.test_quick_flash(n_trials=2)
-    # lasers.test_erp(8)
+    lasers.test_laser_order()
+    # lasers.test_quick_flash(n_trials=2)
+    # lasers.test_erp(1)
     # lasers.test_cvep(8)
