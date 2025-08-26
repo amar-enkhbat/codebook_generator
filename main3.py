@@ -141,12 +141,6 @@ class StimController:
         # self.laser_controller.off()
         # self.text_countdown(duration=10, text='Screen Quick Flash.')
         # self.screen.test_quick_flash(8)
-        
-        # Reset screen
-        print('# of objects:', self.n_objs)
-        self.screen.init_boxes(n_boxes=self.n_objs)
-        self.screen.default_order_pictograms()
-        self.screen.screen_warmup(3)
 
         # Start experiment
         for block_id in range(self.n_blocks):
@@ -161,12 +155,13 @@ class StimController:
 
     def run_block(self, block_id: int):
         """Run a block with multiple runs"""
-
         # Get prerandomized pictogram order
         self.new_pictograms_order = self.df_pictogram_orders[f'block_{block_id}'].tolist()
-        print('New pictograms order:', self.new_pictograms_order)
-        self.screen.reorder_pictograms(self.new_pictograms_order)
         logging.info(f'block:{block_id}; pictograms order: {self.new_pictograms_order}')
+        print('New pictograms order:', self.new_pictograms_order)
+        # Initialize screen
+        self.screen.reorder_pictograms(self.new_pictograms_order)
+        self.screen.screen_warmup(3)
 
         for run_id in range(self.n_runs):
             logging.info(f'run_{run_id}-start')
@@ -195,6 +190,8 @@ class StimController:
         # return pictograms to their original order
 
     def run_trial(self, condition: str, trial_id: int, run_id: int):
+        self.laser_controller.on()
+        self.screen.screen_warmup(0.1)
         # Select mode
         if condition in [0, 1, 2]:
             mode = 'scene'
@@ -280,10 +277,8 @@ class StimController:
         else:
             raise ValueError(f'Condition doesnt exist: {condition}')
         
-        
         perf_sleep(self.trial_rest_duration) # 3 second rest after trials
-        self.laser_controller.on()
-        self.screen.screen_warmup(1)
+
     
     def resting_state_recording(self):
         self.text_countdown(duration=10, text='Resting state. Eyes open.')
