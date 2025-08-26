@@ -10,10 +10,19 @@ class ScreenStimWindow:
     def __init__(self, objects: Dict[int, str]):
         self.objects = objects
         self.marker_ids = {
-            'non_target': 100,
-            'target': 110,
-            'trial_start': 200,
-            'trial_end': 210
+            'erp_non_target': 100,
+            'erp_target': 110,
+            'erp_trial_start': 200,
+            'erp_trial_end': 210,
+
+            'cvep_non_target': 120,
+            'cvep_target': 130,
+            'cvep_trial_start': 220,
+            'cvep_trial_end': 230,
+
+            'quick_flash_target': 140,
+            'quick_flash_trial_start': 240,
+            'quick_flash_trial_end': 250,
         }
         self.quick_flash_wait_duration = (0.75, 1) # 0.75 to 1 seconds
         
@@ -131,7 +140,7 @@ class ScreenStimWindow:
 
     def run_trial_erp(self, codebook: list, target_id: int, trial_id: int, n_stim_on_frames: int, n_stim_off_frames: int):
         """Run a single trial with multiple sequences on monitor"""
-        self.marker_outlet.push_sample([self.marker_ids['trial_start'] + trial_id]) # Push trial start marker
+        self.marker_outlet.push_sample([self.marker_ids['erp_trial_start'] + trial_id]) # Push trial start marker
         for sequence in codebook:
             is_target = sequence[target_id]
             for i in range(n_stim_on_frames):
@@ -142,9 +151,9 @@ class ScreenStimWindow:
                 # If first sequence and is_target is equal to 1 push to target outlet
                 if i == 0:
                     if is_target == 1:
-                        self.marker_outlet.push_sample([self.marker_ids['target'] + target_id]) # Push target marker
+                        self.marker_outlet.push_sample([self.marker_ids['erp_target'] + target_id]) # Push target marker
                     elif is_target == 0:
-                        self.marker_outlet.push_sample([self.marker_ids['non_target'] + target_id]) # Push non-target marker
+                        self.marker_outlet.push_sample([self.marker_ids['erp_non_target'] + target_id]) # Push non-target marker
                     else:
                         ValueError(f'Unknown target value: {is_target}')
             for i in range(n_stim_off_frames):
@@ -152,11 +161,11 @@ class ScreenStimWindow:
                 self.draw_boxes([0] * 8)
                 self.draw_pictograms()
                 self.win.flip()
-        self.marker_outlet.push_sample([self.marker_ids['trial_end'] + trial_id]) # Push trial start marker
+        self.marker_outlet.push_sample([self.marker_ids['erp_trial_end'] + trial_id]) # Push trial start marker
 
     def run_trial_cvep(self, codebook: list, target_id: int, trial_id: int):
         """Run a single trial with multiple sequences on monitor"""
-        self.marker_outlet.push_sample([self.marker_ids['trial_start'] + trial_id]) # Push trial start marker
+        self.marker_outlet.push_sample([self.marker_ids['cvep_trial_start'] + trial_id]) # Push trial start marker
         for sequence in codebook:
             is_target = sequence[target_id]
             self.draw_sensor_box('white' if is_target == 1 else 'black')
@@ -165,13 +174,13 @@ class ScreenStimWindow:
             self.win.flip()
             # If first sequence and is_target is equal to 1 push to target outlet
             if is_target == 1:
-                self.marker_outlet.push_sample([self.marker_ids['target'] + target_id]) # Push target marker
+                self.marker_outlet.push_sample([self.marker_ids['cvep_target'] + target_id]) # Push target marker
             elif is_target == 0:
-                self.marker_outlet.push_sample([self.marker_ids['non_target'] + target_id]) # Push non-target marker
+                self.marker_outlet.push_sample([self.marker_ids['cvep_non_target'] + target_id]) # Push non-target marker
             else:
                 ValueError(f'Unknown target value: {is_target}')
                     
-        self.marker_outlet.push_sample([self.marker_ids['trial_end'] + trial_id]) # Push trial start marker
+        self.marker_outlet.push_sample([self.marker_ids['cvep_trial_end'] + trial_id]) # Push trial start marker
 
         # Rest stims after trial
         self.draw_sensor_box('black')
@@ -183,7 +192,7 @@ class ScreenStimWindow:
         """Run a quick flashing on a monitor"""
         # NOTE: n_stim_stim_on_frames is equal 1 to reflect the speed of cVEP
         # Start trial
-        self.marker_outlet.push_sample([self.marker_ids['trial_start'] + trial_id]) # Push trial start marker
+        self.marker_outlet.push_sample([self.marker_ids['quick_flash_trial_start'] + trial_id]) # Push trial start marker
         for flash_id in range(n_flashes):
             self.draw_sensor_box('black')
             self.draw_boxes([0] * 8)
@@ -196,9 +205,9 @@ class ScreenStimWindow:
                 self.win.flip()
                 # If first sequence and is_target is equal to 1 push to target outlet
                 if i == 0:
-                    self.marker_outlet.push_sample([self.marker_ids['target'] + 0]) # Push target marker
+                    self.marker_outlet.push_sample([self.marker_ids['quick_flash_target']]) # Push target marker
             
-        self.marker_outlet.push_sample([self.marker_ids['trial_end'] + trial_id]) # Push trial start marker
+        self.marker_outlet.push_sample([self.marker_ids['quick_flash_trial_end'] + trial_id]) # Push trial start marker
 
     def test_erp(self, n_trials: int=8):
         """Test Run ERP protocol"""
@@ -402,7 +411,8 @@ def main():
         screen.draw_text('Press any key to continue')
         screen.win.flip()
     event.waitKeys()
-    screen.test_erp()
+    # screen.test_erp()
+    screen.test_quick_flash(2)
     # screen.test_cvep()
     # screen.test_quick_flash(n_trials=8)
 
