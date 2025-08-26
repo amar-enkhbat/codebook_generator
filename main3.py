@@ -23,9 +23,9 @@ class StimController:
         np.random.seed(random_seed)
         
         # Experiment global settings
-        self.codebook_kolkhorst = load_codebooks_block_1()
-        self.codebook_fast_erp = load_codebooks_block_2()
-        self.codebook_cvep = load_codebooks_block_3()
+        self.codebook_kolkhorst = load_codebooks_block_1().astype(int).tolist()
+        self.codebook_fast_erp = load_codebooks_block_2().astype(int).tolist()
+        self.codebook_cvep = load_codebooks_block_3().astype(int).tolist()
         
         self.objects = {
             0: 'bottle', 
@@ -51,7 +51,7 @@ class StimController:
         self.df_pictogram_orders = pd.read_csv('./config/pictogram_orders.csv', index_col=0)
         self.new_pictograms_order = np.arange(8).tolist()
 
-        self.n_blocks = 3
+        self.n_blocks = 1
         self.n_runs = 8
         self.n_trials = 10
         self.trial_duration = 12
@@ -59,7 +59,7 @@ class StimController:
         self.trial_rest_duration = 3 # NOTE: check if 3 seconds is enough
         self.run_rest_duration = 10
         self.block_rest_duration = 60
-        self.resting_state_duration = 10
+        self.resting_state_duration = 150
         
         # Screen settings
         self.refresh_rate = 60 # Hz
@@ -102,30 +102,16 @@ class StimController:
         self.marker_outlet = StreamOutlet(info)
         
 
-    def rest(self, duration: int, text: str='Rest'):
+    def text_countdown(self, duration: int, text: str='Rest'):
         for t in range(duration):
             start_time = time.perf_counter()
             self.screen.draw_text(text + f'\n Experiment will start in\n{duration - t} seconds.')
             # self.screen.description_text.setHeight(60)
             self.screen.win.flip()
             perf_sleep(1 - 1/self.refresh_rate)
-
-    def run_quick_flash_aser(self, n_trials: int=8):
-        """Test Run CVEP protocol"""
-        # Init flash box with no pictograms
-
-
-        perf
-        self.marker_outlet.push_sample(['Start fast flash'])
-        for trial_id in range(n_trials):
-            self.screen.run_trial_quick_flash(n_flashes=12, trial_id=trial_id, n_stim_on_frames=1)
-            self.screen.screen_warmup(3, draw_pictograms=False)
-        self.marker_outlet.push_sample(['End fast flash'])
-
-        # Reset stim boxes on screen
-        del self.screen.boxes
-        self.screen.init_boxes(n_boxes=self.n_objs)
-        self.screen.screen_warmup(duration=3)
+        self.screen.draw_text('')
+        self.screen.description_text.setHeight(50)
+        self.screen.win.flip()
 
     # def run_quick_flash(self, n_trials: int=8):
     #     """Test Run CVEP protocol"""
@@ -146,25 +132,32 @@ class StimController:
     #     self.screen.screen_warmup(duration=3)
 
     def run_session(self):
-        if input(f'Press any key to start resting state recording:') == 'y':
-            self.resting_state_recording()
+        # self.laser_controller.off()
+        # self.resting_state_recording()
 
-        if input(f'Press any key to start fast flash recording:') == 'y':
-            self.screen.test_quick_flash(8)
+        # self.text_countdown(duration=10, text='Laser Quick Flash.')
+        # self.laser_controller.test_quick_flash(8)
+
+        # self.laser_controller.off()
+        # self.text_countdown(duration=10, text='Screen Quick Flash.')
+        # self.screen.test_quick_flash(8)
         
+        # Reset screen
+        print('# of objects:', self.n_objs)
+        self.screen.init_boxes(n_boxes=self.n_objs)
+        self.screen.default_order_pictograms()
+        self.screen.screen_warmup(3)
+
         # Start experiment
         for block_id in range(self.n_blocks):
             # Start block
-            _ = input(f'Press any key to start block: {block_id}\n')
             logging.info(f'block_{block_id}-start')
             self.run_block(block_id)
-            self.rest(self.block_rest_duration, text=f'Block: {block_id} complete.')
+            self.text_countdown(self.block_rest_duration, text=f'Block: {block_id} complete.')
             logging.info(f'block_{block_id}-end')
 
         self.screen.draw_text('Thank you! You have successfully completed the experiment!')
         self.screen.win.flip()
-        if input('End the experiment? y/n\n') == 'y':
-            exit()
 
     def run_block(self, block_id: int):
         """Run a block with multiple runs"""
@@ -176,10 +169,9 @@ class StimController:
         logging.info(f'block:{block_id}; pictograms order: {self.new_pictograms_order}')
 
         for run_id in range(self.n_runs):
-            _ = input(f'Start block: {block_id}; run: {run_id}. Press any key to continue:\n')
             logging.info(f'run_{run_id}-start')
             self.run_run(run_id)
-            self.rest(self.run_rest_duration, text=f'Run: {run_id} complete.')
+            self.text_countdown(self.run_rest_duration, text=f'Run: {run_id} complete.')
             logging.info(f'run_{run_id}-end')
 
         # Return to original pictogram positions to prevent double indexing
@@ -201,8 +193,7 @@ class StimController:
             self.run_trial(condition=condition, trial_id=trial_id, run_id=run_id)
             logging.info(f'trial_{trial_id}-end;{condition}')
         # return pictograms to their original order
-        self.screen.default_order_pictograms()
-        
+
     def run_trial(self, condition: str, trial_id: int, run_id: int):
         # Select mode
         if condition in [0, 1, 2]:
@@ -211,6 +202,7 @@ class StimController:
             mode = 'screen'
         else:
             ValueError(f'Condition not found: {condition}')
+
         target_id = self.df_obj_orders[f'run_{run_id}'][f'trial_{trial_id}']
         target_obj = self.objects[target_id]
         # Get ref and play audio cue
@@ -219,7 +211,7 @@ class StimController:
         print(f'target obj: {target_obj}, ref obj: {ref_obj}')
         # Run trial based on mode        
         if condition == 0:
-            codebook = self.codebook_kolkhorst[run_id].tolist()
+            codebook = self.codebook_kolkhorst[run_id]
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
             self.laser_controller.off()
             # Verify target
@@ -230,7 +222,7 @@ class StimController:
                 perf_sleep(1)
             self.laser_controller.run_trial_erp(codebook, target_id, trial_id=trial_id, on_duration=self.erp_on_duration, off_duration=self.erp_off_duration)
         elif condition == 1:
-            codebook = self.codebook_fast_erp[run_id].tolist()
+            codebook = self.codebook_fast_erp[run_id]
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
             self.laser_controller.off()
             # Verify target
@@ -241,7 +233,7 @@ class StimController:
                 perf_sleep(1)
             self.laser_controller.run_trial_erp(codebook, target_id, trial_id=trial_id, on_duration=self.erp_on_duration, off_duration=self.erp_off_duration)
         elif condition == 2:
-            codebook = self.codebook_cvep[run_id].tolist()
+            codebook = self.codebook_cvep[run_id]
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
             self.laser_controller.off()
             # Verify target
@@ -252,28 +244,36 @@ class StimController:
                 perf_sleep(1)
             self.laser_controller.run_trial_cvep(codebook=codebook, target_id=target_id, trial_id=trial_id, on_duration=1/self.refresh_rate)
         elif condition == 3:
-            codebook = self.codebook_fast_erp[run_id].tolist()
+            codebook = self.codebook_fast_erp[run_id]
             target_id = self.new_pictograms_order[target_id]
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
             self.laser_controller.off()
             # Verify target
             if self.verify_screen:
                 # 1 second on then off
-                self.screen.run_trial_cvep(np.ones((60, self.n_objs)), 0, 0)
+                tmp_codebook = np.zeros((60, self.n_objs))
+                tmp_codebook[:, target_id] = 1
+                self.screen.run_trial_cvep(tmp_codebook, 0, 0)
                 # 1 second off
+                self.screen.screen_warmup(1)
+            else:
                 self.screen.screen_warmup(1)
             self.screen.screen_warmup(2)
             self.screen.run_trial_erp(codebook, target_id=target_id, trial_id=trial_id, n_stim_on_frames=self.erp_on_frames, n_stim_off_frames=self.erp_off_frames)
         elif condition == 4:
-            codebook = self.codebook_cvep[run_id].tolist()
+            codebook = self.codebook_cvep[run_id]
             target_id = self.new_pictograms_order[target_id]
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
             self.laser_controller.off()
             # Verify target
             if self.verify_screen:
                 # 1 second on then off
-                self.screen.run_trial_cvep(np.ones((60, self.n_objs)), 0, 0)
+                tmp_codebook = np.zeros((60, self.n_objs))
+                tmp_codebook[:, target_id] = 1
+                self.screen.run_trial_cvep(tmp_codebook, 0, 0)
                 # 1 second off
+                self.screen.screen_warmup(1)
+            else:
                 self.screen.screen_warmup(1)
             self.screen.screen_warmup(2)
             self.screen.run_trial_cvep(codebook, target_id=target_id, trial_id=trial_id)
@@ -283,20 +283,22 @@ class StimController:
         
         perf_sleep(self.trial_rest_duration) # 3 second rest after trials
         self.laser_controller.on()
+        self.screen.screen_warmup(1)
     
     def resting_state_recording(self):
+        self.text_countdown(duration=10, text='Resting state. Eyes open.')
         self.screen.draw_text('.')
-        self.screen.description_text.setHeight(200)
+        self.screen.description_text.setHeight(50)
         self.screen.win.flip()
-        if input('Start eyes open recording? y/n\n') == 'y':
-            self.marker_outlet.push_sample(['Start eyes open'])
-            perf_sleep(self.resting_state_duration)
-            self.marker_outlet.push_sample(['End eyes open'])
+        self.marker_outlet.push_sample(['Start eyes open'])
+        perf_sleep(self.resting_state_duration)
+        self.marker_outlet.push_sample(['End eyes open'])
 
-        if input('Start eyes closed recording? y/n\n') == 'y':
-            self.marker_outlet.push_sample(['Start eyes closed'])
-            perf_sleep(self.resting_state_duration)
-            self.marker_outlet.push_sample(['End eyes closed'])
+
+        self.text_countdown(duration=10, text='Resting state. Eyes closed.')
+        self.marker_outlet.push_sample(['Start eyes closed'])
+        perf_sleep(self.resting_state_duration)
+        self.marker_outlet.push_sample(['End eyes closed'])
 
         self.screen.draw_text('Resting state recording finished')
         self.screen.description_text.setHeight(50)
@@ -314,8 +316,9 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
     controller = StimController()
-    controller.verify_lasers = True
-    controller.verify_screen = True
+    controller.verify_lasers = False
+    controller.verify_screen = False
+    _ = input('Start experiment? Press y and then enter!\n')
     controller.run_session()
     
 
