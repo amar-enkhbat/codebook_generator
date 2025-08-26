@@ -62,6 +62,8 @@ class ScreenStimWindow:
         # Boxes behind pictograms
         if n_boxes == 1:
             self.stim_box_poss = [(0, 0)]
+        else:
+            self.stim_box_poss = [(self.stim_box_space + i*(self.stim_box_size + self.stim_box_space) - self.width // 2 + self.stim_box_size / 2, 0) for i in range(self.n_objs)]
         self.boxes = []
         for i in range(n_boxes):
             box = visual.Rect(self.win, width=self.stim_box_size, height=self.stim_box_size, pos=self.stim_box_poss[i], units='pix', color='black', autoLog=False)
