@@ -20,6 +20,11 @@ class LaserController:
             'cvep_trial_start': 220,
             'cvep_trial_end': 230,
 
+            'kolkhorst_non_target': 140,
+            'kolkhorst_target': 150,
+            'kolkhorst_trial_start': 260,
+            'kolkhorst_trial_end': 270,
+
             'quick_flash_target': 140,
             'quick_flash_trial_start': 240,
             'quick_flash_trial_end': 250,
@@ -91,6 +96,31 @@ class LaserController:
 
         self.marker_outlet.push_sample([self.marker_ids['erp_trial_end'] + trial_id])
 
+    def run_trial_kolkhorst(self, codebook: List[int], target_id: int, trial_id: int, on_duration: float=0.1, off_duration: float=0.15):
+        """Run a single trial with multiple sequences on objects using lasers"""
+        self.marker_outlet.push_sample([self.marker_ids['kolkhorst_trial_start'] + trial_id]) # Push trial start marker
+        print('Codebook:', len(codebook))
+        for sequence in codebook:
+            is_target = sequence[target_id]
+            # Turn on lasers
+            end_time = time.perf_counter() + on_duration
+            self.send_lasers_values(sequence)
+            if is_target == 1:
+                self.marker_outlet.push_sample([self.marker_ids['kolkhorst_target'] + target_id]) # Push target marker
+            elif is_target == 0:
+                self.marker_outlet.push_sample([self.marker_ids['kolkhorst_non_target'] + target_id]) # Push non-target marker
+            else:
+                ValueError(f'Unknown target value: {is_target}')
+            while time.perf_counter() <= end_time:
+                pass
+            # Turn off lasers
+            end_time = time.perf_counter() + off_duration
+            self.off()
+            while time.perf_counter() <= end_time:
+                pass
+
+        self.marker_outlet.push_sample([self.marker_ids['kolkhorst_trial_end'] + trial_id])
+
     
     def run_trial_cvep(self, codebook: List[int], target_id: int, trial_id: int, on_duration: float=1 / 60):
         """Run a single trial with multiple sequences on objects using lasers"""
@@ -128,6 +158,23 @@ class LaserController:
 
         print('Trial run times:', trial_run_times)
         print('Mean trial run time (should be 12):', np.mean(trial_run_times))
+
+    def test_erp_kolkhorst(self, n_trials=8):
+        """Test Run ERP protocol"""
+        codebook = load_codebooks_block_1()[0].astype(int).tolist()
+
+        trial_run_times = []
+        for trial_id in range(n_trials):
+            start_time = time.perf_counter()
+            print(len(codebook))
+            self.run_trial_kolkhorst(codebook, target_id=0, trial_id=trial_id, on_duration=0.1, off_duration=0.15)
+            elapsed_time = time.perf_counter() - start_time
+            trial_run_times.append(elapsed_time)
+            perf_sleep(3)
+
+        print('Trial run times:', trial_run_times)
+        print('Mean trial run time (should be 12):', np.mean(trial_run_times))
+
 
     def test_cvep(self, n_trials=8):
         """Test Run ERP protocol"""
@@ -200,7 +247,8 @@ if __name__ == '__main__':
     lasers.on()
     _ = input('Press any key to continue.\n')
     lasers.off()
-    lasers.test_laser_order()
+    # lasers.test_laser_order()
     # lasers.test_quick_flash(n_trials=2)
     # lasers.test_erp(1)
+    lasers.test_erp_kolkhorst(1)
     # lasers.test_cvep(8)
