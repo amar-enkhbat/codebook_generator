@@ -3,32 +3,12 @@ import logging
 from typing import List
 import time
 import numpy as np
-from pylsl import StreamOutlet, StreamInfo
+from pylsl import StreamOutlet, StreamInfo, cf_string
 from utils import perf_sleep, load_codebooks_block_2, load_codebooks_block_3, load_codebooks_block_1, random_wait
 
 class LaserController:
     """Laser is always on except right before start of a trial"""
     def __init__(self, port: str='COM7'):
-        self.marker_ids = {
-            'erp_non_target': 100,
-            'erp_target': 110,
-            'erp_trial_start': 200,
-            'erp_trial_end': 210,
-
-            'cvep_non_target': 120,
-            'cvep_target': 130,
-            'cvep_trial_start': 220,
-            'cvep_trial_end': 230,
-
-            'kolkhorst_non_target': 140,
-            'kolkhorst_target': 150,
-            'kolkhorst_trial_start': 260,
-            'kolkhorst_trial_end': 270,
-
-            'quick_flash_target': 140,
-            'quick_flash_trial_start': 240,
-            'quick_flash_trial_end': 250,
-        }
         self.port = port
         self.teensy = None
         try:
@@ -37,7 +17,7 @@ class LaserController:
             logging.warning(f"Teensy not connected: {e}")
 
         # Init marker stream
-        info = StreamInfo(name='LaserMarkerStream', type='Marker', channel_count=1, channel_format=5, nominal_srate=0, source_id='laser_marker_stream_id')
+        info = StreamInfo(name='LaserMarkerStream', type='Marker', channel_count=1, channel_format=cf_string, nominal_srate=0, source_id='laser_marker_stream_id')
         self.marker_outlet = StreamOutlet(info)
 
         # Turn on lasers
@@ -45,7 +25,7 @@ class LaserController:
 
     def send_lasers_values(self, values: List[int]) -> None:
         if self.teensy is not None:
-            new_order = [0, 1, 2, 4, 5, 3, 6, 7]
+            new_order = [0, 1, 2, 4, 5, 3, 6, 7] # For fixing laser orders being not accurate in the Teensy board
             values = [values[i] for i in new_order]
             values = values[::-1] # Mirror the sequences so that the stimuli are correctly presented
             data_str = ",".join(map(str, values)) + "\n"
@@ -73,19 +53,13 @@ class LaserController:
 
     def run_trial_erp(self, codebook: List[int], target_id: int, trial_id: int, on_duration: float=0.1, off_duration: float=0.15):
         """Run a single trial with multiple sequences on objects using lasers"""
-        self.marker_outlet.push_sample([self.marker_ids['erp_trial_start'] + trial_id]) # Push trial start marker
-        print('Codebook:', len(codebook))
-        for sequence in codebook:
+        self.marker_outlet.push_sample([f'erp;start;{trial_id};null;{target_id};null']) # Push trial start marker
+        for seq_id, sequence in enumerate(codebook):
             is_target = sequence[target_id]
             # Turn on lasers
             end_time = time.perf_counter() + on_duration
             self.send_lasers_values(sequence)
-            if is_target == 1:
-                self.marker_outlet.push_sample([self.marker_ids['erp_target'] + target_id]) # Push target marker
-            elif is_target == 0:
-                self.marker_outlet.push_sample([self.marker_ids['erp_non_target'] + target_id]) # Push non-target marker
-            else:
-                ValueError(f'Unknown target value: {is_target}')
+            self.marker_outlet.push_sample([f'erp;null;{trial_id};{is_target};{target_id};{seq_id}']) # Push target marker
             while time.perf_counter() <= end_time:
                 pass
             # Turn off lasers
@@ -94,23 +68,17 @@ class LaserController:
             while time.perf_counter() <= end_time:
                 pass
 
-        self.marker_outlet.push_sample([self.marker_ids['erp_trial_end'] + trial_id])
+        self.marker_outlet.push_sample([f'erp;end;{trial_id};null;{target_id};null']) # Push target marker
 
     def run_trial_kolkhorst(self, codebook: List[int], target_id: int, trial_id: int, on_duration: float=0.1, off_duration: float=0.15):
         """Run a single trial with multiple sequences on objects using lasers"""
-        self.marker_outlet.push_sample([self.marker_ids['kolkhorst_trial_start'] + trial_id]) # Push trial start marker
-        print('Codebook:', len(codebook))
-        for sequence in codebook:
+        self.marker_outlet.push_sample([f'kolkhorst;start;{trial_id};null;{target_id};null']) # Push target marker
+        for seq_id, sequence in enumerate(codebook):
             is_target = sequence[target_id]
             # Turn on lasers
             end_time = time.perf_counter() + on_duration
             self.send_lasers_values(sequence)
-            if is_target == 1:
-                self.marker_outlet.push_sample([self.marker_ids['kolkhorst_target'] + target_id]) # Push target marker
-            elif is_target == 0:
-                self.marker_outlet.push_sample([self.marker_ids['kolkhorst_non_target'] + target_id]) # Push non-target marker
-            else:
-                ValueError(f'Unknown target value: {is_target}')
+            self.marker_outlet.push_sample([f'kolkhorst;null;{trial_id};{is_target};{target_id};{seq_id}']) # Push target marker
             while time.perf_counter() <= end_time:
                 pass
             # Turn off lasers
@@ -119,27 +87,24 @@ class LaserController:
             while time.perf_counter() <= end_time:
                 pass
 
-        self.marker_outlet.push_sample([self.marker_ids['kolkhorst_trial_end'] + trial_id])
+        self.marker_outlet.push_sample([f'kolkhorst;end;{trial_id};null;{target_id};null']) # Push target marker
 
     
     def run_trial_cvep(self, codebook: List[int], target_id: int, trial_id: int, on_duration: float=1 / 60):
         """Run a single trial with multiple sequences on objects using lasers"""
-        self.marker_outlet.push_sample([self.marker_ids['cvep_trial_start'] + trial_id]) # Push trial start marker
-        for sequence in codebook:
+        self.marker_outlet.push_sample([f'cvep;start;{trial_id};null;{target_id};null']) # Push target marker
+        for seq_id, sequence in enumerate(codebook):
             is_target = sequence[target_id]
             # Turn on lasers
             end_time = time.perf_counter() + on_duration
             self.send_lasers_values(sequence)
-            if is_target == 1:
-                self.marker_outlet.push_sample([self.marker_ids['cvep_target'] + target_id]) # Push target marker
-            elif is_target == 0:
-                self.marker_outlet.push_sample([self.marker_ids['cvep_non_target'] + target_id]) # Push non-target marker
-            else:
-                ValueError(f'Unknown target value: {is_target}')
+            self.marker_outlet.push_sample([f'cvep;null;{trial_id};{is_target};{target_id};{seq_id}']) # Push target marker
             while time.perf_counter() <= end_time:
                 pass
 
-        self.marker_outlet.push_sample([self.marker_ids['cvep_trial_end'] + trial_id])
+        self.marker_outlet.push_sample([f'cvep;end;{trial_id};null;{target_id};null']) # Push target marker
+
+        # Turn off everything after end of the trial
         self.off()
     
     def test_erp(self, n_trials=8):
@@ -150,7 +115,6 @@ class LaserController:
         trial_run_times = []
         for trial_id in range(n_trials):
             start_time = time.perf_counter()
-            print(len(codebook))
             self.run_trial_erp(codebook, target_id=0, trial_id=trial_id, on_duration=0.1, off_duration=0.15)
             elapsed_time = time.perf_counter() - start_time
             trial_run_times.append(elapsed_time)
@@ -192,39 +156,54 @@ class LaserController:
         print('Trial run times:', trial_run_times)
         print('Mean trial run time (should be 12):', np.mean(trial_run_times))
 
-    def run_trial_quick_flash(self, n_flashes: int, trial_id: int, duration: float=1/60, seq: List[int]=[0, 0, 0, 0, 1, 0, 0, 0]):
-        self.marker_outlet.push_sample([self.marker_ids['quick_flash_trial_start'] + trial_id])
+    def run_trial_isolated_flash(self, n_flashes: int, trial_id: int, duration: float=1/60, seq: List[int]=[0, 0, 0, 0, 1, 0, 0, 0], wait_low=0.75, wait_high=1):
+        self.marker_outlet.push_sample([f'isolated;start;{trial_id};null;0;null']) # Push target marker
         for flash_id in range(n_flashes):
             end_time = time.perf_counter() + duration
             self.send_lasers_values(seq)
-            self.marker_outlet.push_sample([self.marker_ids['quick_flash_target']]) # Push target marker
+            self.marker_outlet.push_sample([f'isolated;null;{trial_id};1;0;null']) # Push target marker
             while time.perf_counter() <= end_time:
                 pass
             self.off()
-            random_wait(0.75, 1)
-        self.marker_outlet.push_sample([self.marker_ids['quick_flash_trial_end'] + trial_id])
+            random_wait(wait_low, wait_high)
+        self.marker_outlet.push_sample([f'isolated;end;{trial_id};null;0;null']) # Push target marker
+
+    def run_trial_burst_flash(self, n_flashes: int, trial_id: int, duration: float=1/60, seq: List[int]=[0, 0, 0, 0, 1, 0, 0, 0], wait=1/60):
+        self.marker_outlet.push_sample([f'burst;start;{trial_id};null;0;null']) # Push target marker
+        for flash_id in range(n_flashes):
+            end_time = time.perf_counter() + duration
+            self.send_lasers_values(seq)
+            self.marker_outlet.push_sample([f'burst;null;{trial_id};1;0;null']) # Push target marker
+            while time.perf_counter() <= end_time:
+                pass
+            self.off()
+            perf_sleep(wait)
+        self.marker_outlet.push_sample([f'burst;end;{trial_id};null;0;null']) # Push target marker
 
 
-    def test_quick_flash(self, n_trials: int=8):
+    def run_quick_flash(self, n_trials: int=8, seq: List[int]=[0, 0, 0, 0, 1, 0, 0, 0], n_flashes: int=12, flash_duration: float=1/60, wait_low=0.75, wait_high=1.0):
         # show initial position
-        seq = [0, 0, 0, 0, 1, 0, 0, 0]
         self.send_lasers_values(seq)
         perf_sleep(1)
         self.off()
         perf_sleep(2)
 
-        trial_run_times = []
+        # Run, N flashes and 3 second pause in between
         for trial_id in range(n_trials):
-            start_time = time.perf_counter()
-            self.run_trial_quick_flash(n_flashes=12, trial_id=trial_id, duration=1 / 60)
-            elapsed_time = time.perf_counter() - start_time
+            self.run_trial_isolated_flash(n_flashes=n_flashes, trial_id=trial_id, duration=flash_duration, wait_low=wait_low, wait_high=wait_high)
             perf_sleep(3)
-            trial_run_times.append(elapsed_time)
 
-        # Log results
-        print('Trial run times:', trial_run_times)
-        print('Mean trial run time (should be 12):', np.mean(trial_run_times))
+    def run_isolated_flash(self, n_trials: int=8, seq: List[int]=[0, 0, 0, 0, 1, 0, 0, 0], n_flashes: int=12, flash_duration: float=1/60, wait=1/60):
+        # show initial position
+        self.send_lasers_values(seq)
+        perf_sleep(1)
+        self.off()
+        perf_sleep(2)
 
+        # Run, N flashes and 3 second pause in between
+        for trial_id in range(n_trials):
+            self.run_trial_burst_flash(n_flashes=n_flashes, trial_id=trial_id, duration=flash_duration, wait=wait)
+            perf_sleep(3)
 
     def close(self) -> None:
         if self.teensy is not None:
@@ -248,7 +227,8 @@ if __name__ == '__main__':
     _ = input('Press any key to continue.\n')
     lasers.off()
     # lasers.test_laser_order()
-    # lasers.test_quick_flash(n_trials=2)
-    # lasers.test_erp(1)
+    # lasers.run_quick_flash(n_trials=8)
+    # lasers.run_quick_flash(n_trials=16, wait_low=1/60, wait_high=1/60)
+    lasers.test_erp(1)
     lasers.test_erp_kolkhorst(1)
-    # lasers.test_cvep(8)
+    lasers.test_cvep(1)
