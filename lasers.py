@@ -181,7 +181,7 @@ class LaserController:
         self.marker_outlet.push_sample([f'burst;end;{trial_id};null;0;null']) # Push target marker
 
 
-    def run_quick_flash(self, n_trials: int=8, seq: List[int]=[0, 0, 0, 0, 1, 0, 0, 0], n_flashes: int=12, flash_duration: float=1/60, wait_low=0.75, wait_high=1.0):
+    def run_isolated_flash(self, n_trials: int=8, seq: List[int]=[0, 0, 0, 0, 1, 0, 0, 0], n_flashes: int=12, flash_duration: float=1/60, wait_low=0.75, wait_high=1.0):
         # show initial position
         self.send_lasers_values(seq)
         perf_sleep(1)
@@ -193,7 +193,7 @@ class LaserController:
             self.run_trial_isolated_flash(n_flashes=n_flashes, trial_id=trial_id, duration=flash_duration, wait_low=wait_low, wait_high=wait_high)
             perf_sleep(3)
 
-    def run_isolated_flash(self, n_trials: int=8, seq: List[int]=[0, 0, 0, 0, 1, 0, 0, 0], n_flashes: int=12, flash_duration: float=1/60, wait=1/60):
+    def run_burst_flash(self, n_trials: int=8, seq: List[int]=[0, 0, 0, 0, 1, 0, 0, 0], n_flashes: int=12, flash_duration: float=1/60, wait=1/60):
         # show initial position
         self.send_lasers_values(seq)
         perf_sleep(1)
@@ -229,6 +229,8 @@ if __name__ == '__main__':
     # lasers.test_laser_order()
     # lasers.run_quick_flash(n_trials=8)
     # lasers.run_quick_flash(n_trials=16, wait_low=1/60, wait_high=1/60)
+    lasers.run_isolated_flash(2)
+    lasers.run_burst_flash(2)
     lasers.test_erp(1)
     lasers.test_erp_kolkhorst(1)
     lasers.test_cvep(1)
