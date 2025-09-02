@@ -27,6 +27,7 @@ class AudioController:
         audio.play()
         start_time = time.perf_counter()
         perf_sleep(duration)
+        audio.stop()
         self.marker_outlet.push_sample(['stop'])
         _ = self.button_box.read() # Flush previous key presses
         
