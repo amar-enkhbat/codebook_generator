@@ -115,7 +115,7 @@ class ScreenStimWindow:
     def reorder_pictograms(self, new_idc: List[int]):
         # self.pictogram_poss = [self.pictogram_poss[i] for i in new_idc]  # NOTE: Could be indexing twice.
         # self.init_pictograms()
-        # new_idc = [new_idc.index(i) for i in range(len(new_idc))]
+        new_idc = [new_idc.index(i) for i in range(len(new_idc))]
         new_poss = [self.pictogram_poss[i] for i in new_idc]
         for i in range(len(new_poss)):
             self.pictograms[i].pos = new_poss[i]
