@@ -1,7 +1,7 @@
 import time
 import numpy as np
 from psychopy import sound, tools, prefs
-from utils import perf_sleep, random_wait
+from utils import perf_sleep
 from button_box import ButtonBoxController
 from pylsl import StreamInfo, StreamOutlet, cf_string
 
@@ -10,7 +10,6 @@ class AudioController:
         self.audio_path = audio_path
         self.button_box = button_box
         self.playback_interval = 3 # Play audio every 3 seconds
-        self.key_press_pause_duration = (1, 3) # Pause between 3 to 4 seconds after key press
 
         # Init marker stream
         info = StreamInfo(name='AudioCueMarkerStream', type='Marker', channel_count=1, channel_format=cf_string, nominal_srate=0, source_id='audio_marker_stream_id')
@@ -28,6 +27,7 @@ class AudioController:
         start_time = time.perf_counter()
         perf_sleep(duration)
         audio.stop()
+
         self.marker_outlet.push_sample(['stop'])
         _ = self.button_box.read() # Flush previous key presses
         
@@ -39,7 +39,6 @@ class AudioController:
                 self.button_box.marker_outlet.push_sample([1])
                 self.marker_outlet.push_sample(['button_press'])
                 self.marker_outlet.push_sample(['stop'])
-                random_wait(self.key_press_pause_duration[0], self.key_press_pause_duration[1])
                 return x
             else:
                 continue
@@ -58,7 +57,6 @@ class AudioController:
                     audio.stop()
                     self.marker_outlet.push_sample(['button_press'])
                     self.marker_outlet.push_sample(['stop'])
-                    random_wait(self.key_press_pause_duration[0], self.key_press_pause_duration[1])
                     return x
                 else:
                     continue
@@ -72,7 +70,6 @@ class AudioController:
                     self.button_box.marker_outlet.push_sample([1])
                     self.marker_outlet.push_sample(['button_press'])
                     self.marker_outlet.push_sample(['stop'])
-                    random_wait(self.key_press_pause_duration[0], self.key_press_pause_duration[1])
                     return x
                 else:
                     continue

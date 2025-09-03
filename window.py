@@ -125,9 +125,9 @@ class ScreenStimWindow:
         for i in range(len(new_poss)):
             self.pictograms[i].pos = new_poss[i]
 
-    def run_trial_erp(self, codebook: list, target_id: int, trial_id: int, n_stim_on_frames: int, n_stim_off_frames: int):
+    def run_trial_erp(self, codebook: list, target_id: int, trial_id: int, run_id: int, n_stim_on_frames: int, n_stim_off_frames: int):
         """Run a single trial with multiple sequences on monitor"""
-        self.marker_outlet.push_sample([f'erp;start;{trial_id};null;{target_id};null']) # Push trial start marker
+        self.marker_outlet.push_sample([f'erp;start;{trial_id};{run_id};null;{target_id};null']) # Push trial start marker
         for seq_id, sequence in enumerate(codebook):
             is_target = sequence[target_id]
             for i in range(n_stim_on_frames):
@@ -137,17 +137,17 @@ class ScreenStimWindow:
                 self.win.flip()
                 # If first sequence and is_target is equal to 1 push to target outlet
                 if i == 0:
-                    self.marker_outlet.push_sample([f'erp;null;{trial_id};{is_target};{target_id};{seq_id}']) # Push target marker
+                    self.marker_outlet.push_sample([f'erp;null;{trial_id};{run_id};{is_target};{target_id};{seq_id}']) # Push target marker
             for i in range(n_stim_off_frames):
                 self.draw_sensor_box('black')
                 self.draw_boxes([0] * 8)
                 self.draw_pictograms()
                 self.win.flip()
-        self.marker_outlet.push_sample([f'erp;end;{trial_id};null;{target_id};null']) # Push target marker
+        self.marker_outlet.push_sample([f'erp;end;{trial_id};{run_id};null;{target_id};null']) # Push target marker
 
-    def run_trial_cvep(self, codebook: list, target_id: int, trial_id: int):
+    def run_trial_cvep(self, codebook: list, target_id: int, trial_id: int, run_id: int):
         """Run a single trial with multiple sequences on monitor"""
-        self.marker_outlet.push_sample([f'cvep;start;{trial_id};null;{target_id};null']) # Push target marker
+        self.marker_outlet.push_sample([f'cvep;start;{trial_id};{run_id};null;{target_id};null']) # Push target marker
         for seq_id, sequence in enumerate(codebook):
             is_target = sequence[target_id]
             self.draw_sensor_box('white' if is_target == 1 else 'black')
@@ -155,9 +155,9 @@ class ScreenStimWindow:
             self.draw_pictograms()
             self.win.flip()
             # If first sequence and is_target is equal to 1 push to target outlet
-            self.marker_outlet.push_sample([f'cvep;null;{trial_id};{is_target};{target_id};{seq_id}']) # Push target marker
+            self.marker_outlet.push_sample([f'cvep;null;{trial_id};{run_id};{is_target};{target_id};{seq_id}']) # Push target marker
                     
-        self.marker_outlet.push_sample([f'cvep;end;{trial_id};null;{target_id};null']) # Push target marker
+        self.marker_outlet.push_sample([f'cvep;end;{trial_id};{run_id};null;{target_id};null']) # Push target marker
 
         # Rest stims after trial
         self.draw_sensor_box('black')
@@ -165,11 +165,11 @@ class ScreenStimWindow:
         self.draw_pictograms()
         self.win.flip()
         
-    def run_trial_isolated_flash(self, n_flashes: int, trial_id: int, n_stim_on_frames: int=1):
+    def run_trial_isolated_flash(self, n_flashes: int, trial_id: int, run_id, n_stim_on_frames: int=1):
         """Run a quick flashing on a monitor"""
         # NOTE: n_stim_stim_on_frames is equal 1 to reflect the speed of cVEP
         # Start trial
-        self.marker_outlet.push_sample([f'isolated;start;{trial_id};null;0;null']) # Push target marker
+        self.marker_outlet.push_sample([f'isolated;start;{trial_id};{run_id};null;0;null']) # Push target marker
         for flash_id in range(n_flashes):
             for i in range(n_stim_on_frames):
                 self.draw_sensor_box('white')
@@ -177,29 +177,29 @@ class ScreenStimWindow:
                 self.win.flip()
                 # If first sequence and is_target is equal to 1 push to target outlet
                 if i == 0:
-                    self.marker_outlet.push_sample([f'isolated;null;{trial_id};1;0;null']) # Push target marker
+                    self.marker_outlet.push_sample([f'isolated;null;{trial_id};{run_id};1;0;null']) # Push target marker
             # Random wait between flashes (0.75~1s) == (45~60 frames)
             self.screen_warmup(duration=round(np.random.uniform(self.quick_flash_wait_duration[0], self.quick_flash_wait_duration[1]), 2))
             
-        self.marker_outlet.push_sample([f'isolated;end;{trial_id};null;0;null']) # Push target marker
+        self.marker_outlet.push_sample([f'isolated;end;{trial_id};{run_id};null;0;null']) # Push target marker
 
-    def run_trial_burst_flash(self, n_flashes: int, trial_id: int, n_stim_on_frames: int=1):
+    def run_trial_burst_flash(self, n_flashes: int, trial_id: int, run_id: int):
         """Run a quick flashing on a monitor"""
         # NOTE: n_stim_stim_on_frames is equal 1 to reflect the speed of cVEP
         # Start trial
-        self.marker_outlet.push_sample([f'burst;start;{trial_id};null;0;null']) # Push target marker
+        self.marker_outlet.push_sample([f'burst;start;{trial_id};{run_id};null;0;null']) # Push target marker
         for flash_id in range(n_flashes):
             self.draw_sensor_box('white')
             self.draw_boxes([1])
             self.win.flip()
             # If first sequence and is_target is equal to 1 push to target outlet
-            self.marker_outlet.push_sample([f'burst;null;{trial_id};1;0;null']) # Push target marker
+            self.marker_outlet.push_sample([f'burst;null;{trial_id};{run_id};1;0;null']) # Push target marker
 
             self.draw_sensor_box('black')
             self.draw_boxes([0])
             self.win.flip()
             
-        self.marker_outlet.push_sample([f'burst;end;{trial_id};null;0;null']) # Push target marker
+        self.marker_outlet.push_sample([f'burst;end;{trial_id};{run_id};null;0;null']) # Push target marker
 
     def test_erp(self, n_trials: int=8):
         """Test Run ERP protocol"""
@@ -216,7 +216,7 @@ class ScreenStimWindow:
         self.win.recordFrameIntervals = True
         for trial_id in range(n_trials):
             start_time = time.perf_counter()
-            self.run_trial_erp(codebook, target_id=new_idc[target_id], trial_id=trial_id, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
+            self.run_trial_erp(codebook, target_id=new_idc[target_id], trial_id=trial_id, run_id=999, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
             elapsed_time = time.perf_counter() - start_time
             trial_run_times.append(elapsed_time)
             self.screen_warmup(duration=3)
@@ -246,7 +246,7 @@ class ScreenStimWindow:
         trial_run_times = []
         for trial_id in range(n_trials):
             start_time = time.perf_counter()
-            self.run_trial_cvep(codebook, target_id=0, trial_id=trial_id)
+            self.run_trial_cvep(codebook, target_id=0, trial_id=trial_id, run_id=999)
             elapsed_time = time.perf_counter() - start_time
             trial_run_times.append(elapsed_time)
             self.screen_warmup(duration=3)
@@ -279,7 +279,7 @@ class ScreenStimWindow:
         trial_run_times = []
         for trial_id in range(n_trials):
             start_time = time.perf_counter()
-            self.run_trial_isolated_flash(n_flashes=12, trial_id=trial_id, n_stim_on_frames=1)
+            self.run_trial_isolated_flash(n_flashes=12, trial_id=trial_id, run_id=999, n_stim_on_frames=1)
             elapsed_time = time.perf_counter() - start_time
             self.screen_warmup(3, draw_pictograms=False)
             trial_run_times.append(elapsed_time)
@@ -312,7 +312,7 @@ class ScreenStimWindow:
         trial_run_times = []
         for trial_id in range(n_trials):
             start_time = time.perf_counter()
-            self.run_trial_burst_flash(n_flashes=12, trial_id=trial_id)
+            self.run_trial_burst_flash(n_flashes=12, trial_id=trial_id, run_id=999)
             elapsed_time = time.perf_counter() - start_time
             self.screen_warmup(3, draw_pictograms=False)
             trial_run_times.append(elapsed_time)
@@ -331,92 +331,6 @@ class ScreenStimWindow:
 
         print('Trial run times:', trial_run_times)
         print('Mean trial run time (should be 12):', np.mean(trial_run_times))
-
-    def screen_timing_test(self):
-        """Do some test to measure screen timing."""
-        self.win.recordFrameIntervals = True
-        # Turn on/off only boxes and sensor box
-        for _ in range(5):
-            end_time = time.perf_counter() + self.screen_warmup_duration
-            self.draw_boxes([1] * 8)
-            self.draw_sensor_box('white')
-            self.win.flip()
-            while time.perf_counter() < end_time:
-                pass
-            
-            end_time = time.perf_counter() + self.screen_warmup_duration
-            self.draw_boxes([0] * 8)
-            self.draw_sensor_box('black')
-            self.win.flip()
-            while time.perf_counter() < end_time:
-                pass
-            
-        # Reorder pictograms 5 times
-        for _ in range(5):
-            new_idc = list(np.random.permutation(np.arange(self.n_objs)).astype(int))
-            self.reorder_pictograms(new_idc)
-            self.init_pictograms()
-            end_time = time.perf_counter() + self.screen_warmup_duration
-            self.draw_boxes([1] * 8)
-            self.win.flip()
-            while time.perf_counter() < end_time:
-                pass
-
-        # Test turn screen on/off
-        for _ in range(5):
-            self.hide_stims()
-            self.screen_warmup()
-
-        # Flip boxes for 5 times
-        # 1 second on and 1 second off
-        for _ in range(5):
-            for _ in range(120):
-                end_time = time.perf_counter() + 1 / self.refresh_rate
-                self.draw_sensor_box('white')
-                self.draw_boxes([1] * 8)
-                self.win.flip()
-                while time.perf_counter() < end_time:
-                    pass
-                end_time = time.perf_counter() + 1 / self.refresh_rate
-                self.draw_sensor_box('black')
-                self.draw_boxes([0] * 8)
-                self.win.flip()
-                while time.perf_counter() < end_time:
-                    pass
-        
-        # Flip boxes for 5 seconds every frame
-        for _ in range(5):
-            for _ in range(60):
-                end_time = time.perf_counter() + 1 / self.refresh_rate
-                self.draw_sensor_box('white')
-                self.draw_boxes([1] * 8)
-                self.win.flip()
-                while time.perf_counter() < end_time:
-                    pass
-            for _ in range(60):
-                end_time = time.perf_counter() + 1 / self.refresh_rate
-                self.draw_sensor_box('black')
-                self.draw_boxes([0] * 8)
-                self.win.flip()
-                while time.perf_counter() < end_time:
-                    pass
-
-        # Log results
-        n_dropped_frames = sum(np.array(self.win.frameIntervals) > 1.5 * (1/self.refresh_rate))
-        print(f"Avg frame interval: {np.mean(self.win.frameIntervals)}")
-        print(f"Max frame interval: {np.max(self.win.frameIntervals)}")
-        print(f"Dropped frames: {n_dropped_frames}")
-        print(f'Specified refresh rate: {self.refresh_rate}')
-        print(f"Actual refresh rate: {self.win.getActualFrameRate()}")
-        print(f'# of dropped frames: {n_dropped_frames}')
-        self.win.recordFrameIntervals = False
-        
-        self.disable_stims()
-        self.draw_text("Screen timing test completed. Press any key to close.")
-        self.win.flip()
-
-        event.waitKeys()
-        self.win.close()
 
 def main():
     objects = {
@@ -437,13 +351,14 @@ def main():
         screen.win.flip()
     event.waitKeys()
 
-    screen.test_isolated_flash(1)
-    screen.test_burst_flash(4)
-    del screen.boxes
-    screen.init_boxes(8)
+    # screen.test_isolated_flash(1)
+    # screen.test_burst_flash(2)
 
-    screen.test_erp(1)
-    screen.test_cvep(1)
+    # del screen.boxes
+    # screen.init_boxes(8)
+
+    # screen.test_erp(1)
+    screen.test_cvep(8)
 
 if __name__ == '__main__':
     main()

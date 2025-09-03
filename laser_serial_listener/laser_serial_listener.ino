@@ -39,19 +39,19 @@ void loop() {
 //         digitalWrite(ledPins[i], HIGH);  // Update LED brightness
         
 //     }
-//     delay(100);
+//     delay(1000 / 60);
 //     for (int i = 0; i < 8; i++) {
 //         // analogWrite(ledPins[i], 255);  // Update LED brightness
 //         digitalWrite(ledPins[i], LOW);  // Update LED brightness
         
 //     }
-//     delay(100);
-// //     delay(1000);
-// //     for (int i = 0; i < 8; i++) {
-// //         // analogWrite(ledPins[i], 0);  // Update LED brightness
-// //         digitalWrite(ledPins[i], LOW);  // Update LED brightness
+//     delay(1000 / 60);
+//     delay(1000);
+//     for (int i = 0; i < 8; i++) {
+//         // analogWrite(ledPins[i], 0);  // Update LED brightness
+//         digitalWrite(ledPins[i], LOW);  // Update LED brightness
         
         
-// //     }
-// //     delay(1000);
+//     }
+//     delay(1000);
 // }
