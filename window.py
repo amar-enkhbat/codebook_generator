@@ -127,7 +127,8 @@ class ScreenStimWindow:
 
     def run_trial_erp(self, codebook: list, target_id: int, trial_id: int, run_id: int, n_stim_on_frames: int, n_stim_off_frames: int):
         """Run a single trial with multiple sequences on monitor"""
-        self.marker_outlet.push_sample([f'erp;start;{trial_id};{run_id};null;{target_id};null']) # Push trial start marker
+        
+        self.marker_outlet.push_sample([f'erp;start;{trial_id};{run_id};null;{target_id};null;{[0] * 8}']) # Push trial start marker
         for seq_id, sequence in enumerate(codebook):
             is_target = sequence[target_id]
             for i in range(n_stim_on_frames):
@@ -137,17 +138,17 @@ class ScreenStimWindow:
                 self.win.flip()
                 # If first sequence and is_target is equal to 1 push to target outlet
                 if i == 0:
-                    self.marker_outlet.push_sample([f'erp;null;{trial_id};{run_id};{is_target};{target_id};{seq_id}']) # Push target marker
+                    self.marker_outlet.push_sample([f'erp;null;{trial_id};{run_id};{is_target};{target_id};{seq_id};{sequence}']) # Push target marker
             for i in range(n_stim_off_frames):
                 self.draw_sensor_box('black')
                 self.draw_boxes([0] * 8)
                 self.draw_pictograms()
                 self.win.flip()
-        self.marker_outlet.push_sample([f'erp;end;{trial_id};{run_id};null;{target_id};null']) # Push target marker
+        self.marker_outlet.push_sample([f'erp;end;{trial_id};{run_id};null;{target_id};null;{[0] * 8}']) # Push trial end marker
 
     def run_trial_cvep(self, codebook: list, target_id: int, trial_id: int, run_id: int):
         """Run a single trial with multiple sequences on monitor"""
-        self.marker_outlet.push_sample([f'cvep;start;{trial_id};{run_id};null;{target_id};null']) # Push target marker
+        self.marker_outlet.push_sample([f'cvep;start;{trial_id};{run_id};null;{target_id};null;{[0] * 8}']) # Push trial start marker
         for seq_id, sequence in enumerate(codebook):
             is_target = sequence[target_id]
             self.draw_sensor_box('white' if is_target == 1 else 'black')
@@ -155,51 +156,15 @@ class ScreenStimWindow:
             self.draw_pictograms()
             self.win.flip()
             # If first sequence and is_target is equal to 1 push to target outlet
-            self.marker_outlet.push_sample([f'cvep;null;{trial_id};{run_id};{is_target};{target_id};{seq_id}']) # Push target marker
+            self.marker_outlet.push_sample([f'cvep;null;{trial_id};{run_id};{is_target};{target_id};{seq_id};{sequence}']) # Push target marker
                     
-        self.marker_outlet.push_sample([f'cvep;end;{trial_id};{run_id};null;{target_id};null']) # Push target marker
+        self.marker_outlet.push_sample([f'cvep;end;{trial_id};{run_id};null;{target_id};null']) # Push trial end marker
 
         # Rest stims after trial
         self.draw_sensor_box('black')
         self.draw_boxes([0] * 8)
         self.draw_pictograms()
         self.win.flip()
-        
-    def run_trial_isolated_flash(self, n_flashes: int, trial_id: int, run_id, n_stim_on_frames: int=1):
-        """Run a quick flashing on a monitor"""
-        # NOTE: n_stim_stim_on_frames is equal 1 to reflect the speed of cVEP
-        # Start trial
-        self.marker_outlet.push_sample([f'isolated;start;{trial_id};{run_id};null;0;null']) # Push target marker
-        for flash_id in range(n_flashes):
-            for i in range(n_stim_on_frames):
-                self.draw_sensor_box('white')
-                self.draw_boxes([1])
-                self.win.flip()
-                # If first sequence and is_target is equal to 1 push to target outlet
-                if i == 0:
-                    self.marker_outlet.push_sample([f'isolated;null;{trial_id};{run_id};1;0;null']) # Push target marker
-            # Random wait between flashes (0.75~1s) == (45~60 frames)
-            self.screen_warmup(duration=round(np.random.uniform(self.quick_flash_wait_duration[0], self.quick_flash_wait_duration[1]), 2))
-            
-        self.marker_outlet.push_sample([f'isolated;end;{trial_id};{run_id};null;0;null']) # Push target marker
-
-    def run_trial_burst_flash(self, n_flashes: int, trial_id: int, run_id: int):
-        """Run a quick flashing on a monitor"""
-        # NOTE: n_stim_stim_on_frames is equal 1 to reflect the speed of cVEP
-        # Start trial
-        self.marker_outlet.push_sample([f'burst;start;{trial_id};{run_id};null;0;null']) # Push target marker
-        for flash_id in range(n_flashes):
-            self.draw_sensor_box('white')
-            self.draw_boxes([1])
-            self.win.flip()
-            # If first sequence and is_target is equal to 1 push to target outlet
-            self.marker_outlet.push_sample([f'burst;null;{trial_id};{run_id};1;0;null']) # Push target marker
-
-            self.draw_sensor_box('black')
-            self.draw_boxes([0])
-            self.win.flip()
-            
-        self.marker_outlet.push_sample([f'burst;end;{trial_id};{run_id};null;0;null']) # Push target marker
 
     def test_erp(self, n_trials: int=8):
         """Test Run ERP protocol"""
@@ -351,14 +316,8 @@ def main():
         screen.win.flip()
     event.waitKeys()
 
-    # screen.test_isolated_flash(1)
-    # screen.test_burst_flash(2)
-
-    # del screen.boxes
-    # screen.init_boxes(8)
-
-    # screen.test_erp(1)
-    screen.test_cvep(8)
+    screen.test_erp(2)
+    screen.test_cvep(2)
 
 if __name__ == '__main__':
     main()
