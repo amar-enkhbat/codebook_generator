@@ -50,10 +50,10 @@ def generate_sentence(objects: list, ref: str, target: str, condition: str) -> s
 
 # Example usage
 objects = [
-    "bottle",
+    "can",
     "bandage",
     "remote",
-    "can", 
+    "bottle", 
     "candle", 
     "box",
     "book", 
