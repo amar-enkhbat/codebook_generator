@@ -299,10 +299,10 @@ class ScreenStimWindow:
 
 def main():
     objects = {
-        0: 'bottle', 
+        0: 'can', 
         1: 'bandage', 
         2: 'remote', 
-        3: 'can', 
+        3: 'bottle', 
         4: 'candle', 
         5: 'box', 
         6: 'book', 
