@@ -52,8 +52,8 @@ class StimController:
         self.df_pictogram_orders = pd.read_csv('./config/pictogram_orders.csv', index_col=0)
         self.new_pictograms_order = np.arange(8).tolist()
 
-        self.n_blocks = 4
-        self.n_runs = 8
+        self.n_blocks = 3
+        self.n_runs = 4
         self.n_trials = 10
         self.trial_duration = 12
         self.trial_duration_kolkhorst = 24
@@ -125,49 +125,38 @@ class StimController:
         self.screen.draw_sensor_box('black')
         self.screen.draw_text('Press any key to start!')
         self.screen.win.flip()
+
         event.waitKeys()
-
-        # self.misc_marker_outlet.push_sample(['start_resting_state'])
+        # self.text_countdown(duration=10, text='Resting state. Eyes open')
+        # self.misc_marker_outlet.push_sample(['start_eyes_open'])
         # self.resting_state_recording()
-        # self.misc_marker_outlet.push_sample(['end_resting_state'])
+        # self.misc_marker_outlet.push_sample(['end_eyes_open'])
 
-        # self.text_countdown(duration=10, text='Laser Quick Flash.')
-
-        # _ = input('Start laser isolated flash?')
-        # self.misc_marker_outlet.push_sample(['start_laser_isolated_flash'])
-        # self.laser_controller.run_isolated_flash(8)
-        # self.misc_marker_outlet.push_sample(['end_laser_isolated_flash'])
-
-        # _ = input('Start laser burst flash?')
-        # self.misc_marker_outlet.push_sample(['start_laser_burst_flash'])
-        # self.laser_controller.run_burst_flash(80)
-        # self.misc_marker_outlet.push_sample(['end_laser_burst_flash'])
+        event.waitKeys()
+        # self.text_countdown(duration=10, text='Resting state. Eyes closed')
+        # self.misc_marker_outlet.push_sample(['start_eyes_closed'])
+        # self.resting_state_recording()
+        # self.misc_marker_outlet.push_sample(['end_eyes_closed'])
 
         self.laser_controller.off()
-        self.text_countdown(duration=10, text='Screen Quick Flash.')
-
-        # _ = input('Start screen isolated flash?')
-        # self.misc_marker_outlet.push_sample(['start_screen_isolated_flash'])
-        # self.screen.test_isolated_flash(8)
-        # self.misc_marker_outlet.push_sample(['end_screen_isolated_flash'])
-
-        
-        # _ = input('Start screen burst flash?')
-        # self.misc_marker_outlet.push_sample(['start_screen_burst_flash'])
-        # self.screen.test_burst_flash(40)
-        # self.misc_marker_outlet.push_sample(['end_screen_burst_flash'])
 
         # Start experiment
-        self.n_blocks = 1
         for block_id in range(self.n_blocks):
             # Start block
             self.misc_marker_outlet.push_sample([f'block_{block_id}-start'])
             self.run_block(block_id)
-            self.text_countdown(self.block_rest_duration, text=f'Block: {block_id} complete.')
             self.misc_marker_outlet.push_sample([f'block_{block_id}-end'])
+            
+            self.misc_marker_outlet.push_sample([f'block_{block_id}_rest-start'])
+            self.screen.draw_text(f'Block: {block_id + 1} complete.')
+            self.screen.win.flip()
+            event.waitKeys()
+            self.misc_marker_outlet.push_sample([f'block_{block_id}_rest-end'])
+            
 
-        self.screen.draw_text('Thank you! You have successfully completed the experiment!')
+        self.screen.draw_text('Thank you! You have successfully completed the experiment!\nWait for the researcher for further instructions...')
         self.screen.win.flip()
+        event.waitKeys()
 
     def run_block(self, block_id: int):
         """Run a block with multiple runs"""
@@ -181,16 +170,17 @@ class StimController:
         self.screen.screen_warmup(3)
 
         for run_id in range(self.n_runs):
+            run_id = run_id + block_id * self.n_runs
             self.misc_marker_outlet.push_sample([f'run_{run_id}-start'])
-            self.run_run(run_id)
+            # self.run_run(run_id)
             self.misc_marker_outlet.push_sample([f'run_{run_id}-end'])
 
             self.misc_marker_outlet.push_sample([f'run_{run_id}_rest-start'])
-            self.text_countdown(self.run_rest_duration, text=f'Run: {run_id + 1} complete.')
+            self.screen.draw_text(f'Run: {run_id + 1} complete.')
+            self.screen.win.flip()
+            event.waitKeys()
             self.misc_marker_outlet.push_sample([f'run_{run_id}_rest-end'])
             
-
-
 
         # Return to original pictogram positions to prevent double indexing
         self.screen.default_order_pictograms()
@@ -200,6 +190,7 @@ class StimController:
         self.screen.draw_text(f'Block {block_id} complete!\nPlease wait for instructions.')
         self.screen.description_text.setHeight(60)
         self.screen.win.flip()
+        event.waitKeys()
             
     def run_run(self, run_id: int):
         """Run a single run with multiple trials"""
@@ -366,8 +357,8 @@ if __name__ == "__main__":
     #     format='%(asctime)s - %(levelname)s - %(message)s'
     # )
     controller = StimController()
-    # controller.verify_lasers = True
-    # controller.verify_screen = True
+    controller.verify_lasers = True
+    controller.verify_screen = True
     # controller.resting_state_duration = 5
     print('Press any button on the experiment window!\n')
     controller.run_session()
