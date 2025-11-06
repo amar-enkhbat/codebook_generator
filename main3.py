@@ -142,13 +142,15 @@ class StimController:
 
         # Start experiment
         for block_id in range(self.n_blocks):
+            if block_id != 2:
+                continue
             # Start block
             self.misc_marker_outlet.push_sample([f'block_{block_id}-start'])
             self.run_block(block_id)
             self.misc_marker_outlet.push_sample([f'block_{block_id}-end'])
             
             self.misc_marker_outlet.push_sample([f'block_{block_id}_rest-start'])
-            self.screen.draw_text(f'Block: {block_id + 1} complete.')
+            self.screen.draw_text(f'Block: {block_id + 1} complete. Press any key to start next block.')
             self.screen.win.flip()
             event.waitKeys()
             self.misc_marker_outlet.push_sample([f'block_{block_id}_rest-end'])
@@ -172,11 +174,11 @@ class StimController:
         for run_id in range(self.n_runs):
             run_id = run_id + block_id * self.n_runs
             self.misc_marker_outlet.push_sample([f'run_{run_id}-start'])
-            # self.run_run(run_id)
+            self.run_run(run_id)
             self.misc_marker_outlet.push_sample([f'run_{run_id}-end'])
 
             self.misc_marker_outlet.push_sample([f'run_{run_id}_rest-start'])
-            self.screen.draw_text(f'Run: {run_id + 1} complete.')
+            self.screen.draw_text(f'Run: {run_id + 1} complete. Press any key to start next run.')
             self.screen.win.flip()
             event.waitKeys()
             self.misc_marker_outlet.push_sample([f'run_{run_id}_rest-end'])
@@ -185,12 +187,6 @@ class StimController:
         # Return to original pictogram positions to prevent double indexing
         self.screen.default_order_pictograms()
         self.misc_marker_outlet.push_sample([f'pictograms order: {[i for i in range(8)]}'])
-
-        # Finish block
-        self.screen.draw_text(f'Block {block_id} complete!\nPlease wait for instructions.')
-        self.screen.description_text.setHeight(60)
-        self.screen.win.flip()
-        event.waitKeys()
             
     def run_run(self, run_id: int):
         """Run a single run with multiple trials"""
@@ -233,7 +229,7 @@ class StimController:
         # Run trial based on mode
         if condition == 0:
             # Load codebook
-            codebook = self.codebook_kolkhorst[run_id]
+            codebook = self.codebook_kolkhorst[target_id]
             # Cue audio
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
             self.laser_controller.off()
@@ -248,7 +244,7 @@ class StimController:
             self.laser_controller.run_trial_kolkhorst(codebook, target_id, trial_id=trial_id, run_id=run_id, on_duration=self.erp_on_duration, off_duration=self.erp_off_duration)
         elif condition == 1:
             # Load codebook
-            codebook = self.codebook_fast_erp[run_id]
+            codebook = self.codebook_fast_erp[target_id]
             # Play audio
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
             # Turn off lasers after key press
@@ -264,7 +260,7 @@ class StimController:
             self.laser_controller.run_trial_erp(codebook, target_id, trial_id=trial_id, run_id=run_id, on_duration=self.erp_on_duration, off_duration=self.erp_off_duration)
         elif condition == 2:
             # Load codebook
-            codebook = self.codebook_cvep[run_id]
+            codebook = self.codebook_cvep[target_id]
             # Play audio cue
             self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
             # Turn lasers off after key press
@@ -280,7 +276,7 @@ class StimController:
             self.laser_controller.run_trial_cvep(codebook=codebook, target_id=target_id, trial_id=trial_id, run_id=run_id, on_duration=1/self.refresh_rate)
         elif condition == 3:
             # Load codebook
-            codebook = self.codebook_fast_erp[run_id]
+            codebook = self.codebook_fast_erp[target_id]
             # Get new target id after rearranged pictograms
             new_target_id = self.new_pictograms_order.index(target_id)
             # Play audio cue
@@ -301,7 +297,7 @@ class StimController:
             self.screen.run_trial_erp(codebook, target_id=new_target_id, trial_id=trial_id, run_id=run_id, n_stim_on_frames=self.erp_on_frames, n_stim_off_frames=self.erp_off_frames)
         elif condition == 4:
             # Load codebook
-            codebook = self.codebook_cvep[run_id]
+            codebook = self.codebook_cvep[target_id]
             # Get new target id after rearranged pictograms
             new_target_id = self.new_pictograms_order.index(target_id)
             # Play audio cue
