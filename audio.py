@@ -6,7 +6,7 @@ from button_box import ButtonBoxController
 from pylsl import StreamInfo, StreamOutlet, cf_string
 
 class AudioController:
-    def __init__(self, audio_path: str, button_box: ButtonBoxController):
+    def __init__(self, audio_path: str,  button_box: ButtonBoxController):
         self.audio_path = audio_path
         self.button_box = button_box
         self.playback_interval = 3 # Play audio every 3 seconds
@@ -16,7 +16,7 @@ class AudioController:
         self.marker_outlet = StreamOutlet(info)
         prefs.hardware['audioDevice'] = 'OUT 3-4 (BEHRINGER X-AIR)'
 
-    def cue_audio(self, ref_obj: str, target_obj: str, mode: str):
+    def cue_audio(self, ref_obj: str, target_obj: str, mode: str, play_once: bool=False):
         """Cue audio before a trial. First cue cannot be cancelled."""
         audio = sound.Sound(f'{self.audio_path}/{mode}_{ref_obj}2{target_obj}.mp3')
         duration = audio.getDuration()
@@ -28,6 +28,9 @@ class AudioController:
         perf_sleep(duration)
         audio.stop()
 
+        if play_once:
+            return 0
+        
         self.marker_outlet.push_sample(['stop'])
         _ = self.button_box.read() # Flush previous key presses
         
@@ -83,6 +86,15 @@ class AudioController:
         duration = audio.getDuration() + 2
         perf_sleep(duration)
         
+    def play_done(self, fpath: str='./tts/done..mp3'):
+        """Cue audio before a trial"""
+        audio = sound.Sound(fpath)
+        duration = audio.getDuration()
+        
+        audio.play()
+        perf_sleep(duration)
+        audio.stop()
+        
     def get_available_audio_devices(self):
         return list(tools.systemtools.getAudioDevices().keys())
     
@@ -110,14 +122,16 @@ class AudioController:
 if __name__ == '__main__':
     button_box = ButtonBoxController(timeout=0.1)
     audio = AudioController('./tts/queries/psychopy_slowed', button_box=button_box)
-    audio.key_press_pause_duration = (0, 0.5) # For testing purposes
+    
     # audio.select_speakers()
     # default_audio_devices = [
     #     'OUT 3-4 (BEHRINGER X-AIR)', # For lab PC
     #     'Speakers (Realtek(R) Audio)', # For Windows
     #     'Speakers (High Definition Audio Device)' # For my mac
     # ]
+    
     prefs.hardware['audioDevice'] = 'OUT 3-4 (BEHRINGER X-AIR)'
-    while True:
-        x = audio.cue_audio('can', 'candle', 'scene')
-        print(x)
+    prefs.hardware['audioDevice'] = 'Speakers (High Definition Audio Device)'
+
+    x = audio.cue_audio('can', 'candle', 'scene', play_once=True)
+    audio.play_done()

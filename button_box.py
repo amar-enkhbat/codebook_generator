@@ -15,16 +15,20 @@ class ButtonBoxController:
         self.marker_outlet = StreamOutlet(info)
 
     def connect(self) -> None:
-        self.button_box = serial.Serial(self.port, self.baud_rate, timeout=self.timeout)
-        self.button_box.write('A1'.encode())
-        self.button_box.reset_input_buffer()
-        self.button_box.flush()
-        text = ""
-        for _ in range(200):
-            text = text + self.button_box.read().decode()
-            if "BITSI mode, Ready!\r\n" in text:
-                print("Button box ready!")
-                break
+        try:
+            self.button_box = serial.Serial(self.port, self.baud_rate, timeout=self.timeout)
+            self.button_box.write('A1'.encode())
+            self.button_box.reset_input_buffer()
+            self.button_box.flush()
+
+            text = ""
+            for _ in range(200):
+                text = text + self.button_box.read().decode()
+                if "BITSI mode, Ready!\r\n" in text:
+                    print("Button box ready!")
+                    break
+        except:
+            pass
 
     def read(self) -> str:
         val = self.button_box.readline().decode()
