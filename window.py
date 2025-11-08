@@ -171,17 +171,18 @@ class ScreenStimWindow:
         new_idc = [1, 5, 0, 7, 2, 4, 3, 6]
         self.reorder_pictograms(new_idc)
         
-        # run 10 trials with 1 warmup in-between
-        codebook = load_codebooks_block_2()[0].astype(int).tolist()
+        # Load codebook
+        codebooks = load_codebooks_block_2().astype(int).tolist()
+        
         n_on_frames = 6 # 0.1 seconds
         n_off_frames = 9 # 0.15 seconds
-        target_id = 0
         trial_run_times = []
         self.screen_warmup(duration=3)
         self.win.recordFrameIntervals = True
         for trial_id in range(n_trials):
+            target_id = np.random.randint(0, len(self.objects) + 1) # Get a random target
             start_time = time.perf_counter()
-            self.run_trial_erp(codebook, target_id=new_idc[target_id], trial_id=trial_id, run_id=999, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
+            self.run_trial_erp(codebooks[target_id], target_id=new_idc[target_id], trial_id=trial_id, run_id=999, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
             elapsed_time = time.perf_counter() - start_time
             trial_run_times.append(elapsed_time)
             self.screen_warmup(duration=3)
@@ -310,14 +311,13 @@ def main():
     }
     screen = ScreenStimWindow(objects)
     # Set sensor box to black
-    for _ in range(300):
-        screen.draw_sensor_box('black')
-        screen.draw_text('Press any key to continue')
-        screen.win.flip()
+    screen.draw_sensor_box('black')
+    screen.draw_text('Press any key to continue')
+    screen.win.flip()
     event.waitKeys()
 
-    screen.test_erp(2)
-    screen.test_cvep(2)
+    screen.test_erp(1)
+    # screen.test_cvep(1)
 
 if __name__ == '__main__':
     main()
