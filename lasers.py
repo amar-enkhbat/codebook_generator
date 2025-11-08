@@ -161,16 +161,11 @@ class LaserController:
             self.teensy.close()
 
     def test_laser_order(self) -> None:
-        while True:
-            try:
-                for i in range(8):
-                    seq = [0] * 8
-                    seq[i] = 1
-                    print(seq)
-                    self.send_lasers_values(seq)
-                    perf_sleep(1)
-            except KeyboardInterrupt:
-                break
+        for i in range(8):
+            seq = [0] * 8
+            seq[i] = 1
+            self.send_lasers_values(seq)
+            perf_sleep(1)
 
 if __name__ == '__main__':
     lasers = LaserController()
