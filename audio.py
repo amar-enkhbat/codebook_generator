@@ -16,7 +16,7 @@ class AudioController:
         self.marker_outlet = StreamOutlet(info)
         prefs.hardware['audioDevice'] = 'OUT 3-4 (BEHRINGER X-AIR)'
 
-    def cue_audio(self, ref_obj: str, target_obj: str, mode: str, play_once: bool=False):
+    def cue_audio(self, ref_obj: str, target_obj: str, mode: str, play_audio_once: bool=False):
         """Cue audio before a trial. First cue cannot be cancelled."""
         audio = sound.Sound(f'{self.audio_path}/{mode}_{ref_obj}2{target_obj}.mp3')
         duration = audio.getDuration()
@@ -28,7 +28,7 @@ class AudioController:
         perf_sleep(duration)
         audio.stop()
 
-        if play_once:
+        if play_audio_once:
             return 0
         
         self.marker_outlet.push_sample(['stop'])
@@ -133,5 +133,5 @@ if __name__ == '__main__':
     prefs.hardware['audioDevice'] = 'OUT 3-4 (BEHRINGER X-AIR)'
     prefs.hardware['audioDevice'] = 'Speakers (High Definition Audio Device)'
 
-    x = audio.cue_audio('can', 'candle', 'scene', play_once=True)
+    x = audio.cue_audio('can', 'candle', 'scene', play_audio_once=True)
     audio.play_done()

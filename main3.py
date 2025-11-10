@@ -68,15 +68,15 @@ class StimController:
         # ERP settings
         self.erp_on_duration = 0.1
         self.erp_off_duration = 0.15
-        self.erp_duration = self.erp_on_duration + self.erp_off_duration
 
         # c-VEP settings
         self.cvep_on_duration = 1 / self.refresh_rate
         self.cvep_off_duration = 0
-        self.cvep_duration = self.cvep_on_duration + self.cvep_off_duration
         
         # Filepath for audio cues
         self.cue_audio_path = './tts/queries/psychopy_slowed'
+        self.random_wait_duration = (3, 5)
+        
 
         # Screen settings
         self.erp_on_frames = int(self.erp_on_duration * self.refresh_rate) # Should be 6 frames for 60hz monitor
@@ -86,11 +86,12 @@ class StimController:
         
         # Init laser controller
         self.laser_controller = LaserController()
-        self.verify_lasers = False
-        self.verify_screen = False
 
         # Init button box controller
         self.button_box_controller = ButtonBoxController()
+
+        # Stim verify duration for familiarization
+        self.verify_duration = (1, 1)
 
         # Init audio controller
         self.audio_controller = AudioController(audio_path='./tts/queries/psychopy_slowed', button_box=self.button_box_controller)
@@ -104,7 +105,6 @@ class StimController:
 
         info = StreamInfo(name='MiscMarkerStream', type='Marker', channel_count=1, channel_format=cf_string, nominal_srate=0, source_id='misc_marker_stream_id')
         self.misc_marker_outlet = StreamOutlet(info)
-        
 
     def text_countdown(self, duration: int, text: str='Rest'):
         for t in range(duration):
@@ -118,42 +118,46 @@ class StimController:
         self.screen.win.flip()
 
     def run_session(self):
-        # self.laser_controller.on()
-        # _ = input('Finished setting up the lasers? y/n\n')
-        
-        # self.laser_controller.off()
         self.screen.draw_sensor_box('black')
-        self.screen.draw_text('Start resting state eye open?')
+        self.screen.draw_text('Start resting state eye open? y/n\n')
         self.screen.win.flip()
+        print("###########################################")
+        print('Follow instructions on screen.')
+        print("###########################################")
         key = event.waitKeys()
-        if key == 'y':
+        if key == ['y']:
             self.resting_state_eyes_open()
 
-        self.screen.draw_text('Start resting state eye closed?')
+        self.screen.draw_text('Start resting state eye closed? y/n\n')
         self.screen.win.flip()
+        print("###########################################")
+        print('Follow instructions on screen.')
+        print("###########################################")
         key = event.waitKeys()
-        if key == 'y':
+        if key == ['y']:
             self.resting_state_eyes_closed()
 
-        self.screen.draw_text('Start Familiarization?!')
+        self.screen.draw_text('Start Familiarization? y/n\n')
         self.screen.win.flip()
+        print("###########################################")
+        print('Follow instructions on screen.')
+        print("###########################################")
         key = event.waitKeys()
-        if key == 'y':
-            self.verify_lasers = True
-            self.verify_screen = True
+        if key == ['y']:
             self.familiarization()
-            self.verify_lasers = False
-            self.verify_screen = False
         
-        self.screen.draw_text('Start experiment?!')
+        self.screen.draw_text('Start experiment? y/n\n')
         self.screen.win.flip()
+        print("###########################################")
+        print('Follow instructions on screen.')
+        print("###########################################")
         event.waitKeys()
-
+        if key != ['y']:
+            self.exit()
         self.laser_controller.off()
+
         # Start experiment
         for block_id in range(self.n_blocks):
-            if block_id != 2:
-                continue
             # Start block
             self.misc_marker_outlet.push_sample([f'block_{block_id}-start'])
             self.run_block(block_id)
@@ -162,62 +166,74 @@ class StimController:
             self.misc_marker_outlet.push_sample([f'block_{block_id}_rest-start'])
             self.screen.draw_text(f'Block: {block_id + 1} complete. Press any key to start next block.')
             self.screen.win.flip()
+            print("###########################################")
+            print(f'Block: {block_id + 1} complete. Follow instructions on screen.')
+            print("###########################################")
             event.waitKeys()
             self.misc_marker_outlet.push_sample([f'block_{block_id}_rest-end'])
             
 
         self.screen.draw_text('Thank you! You have successfully completed the experiment!\nWait for the researcher for further instructions...')
         self.screen.win.flip()
+        print("###########################################")
+        print('Experiment complete!')
+        print("###########################################")
         event.waitKeys()
 
-    def run_block(self, block_id: int):
+    def run_block(self, block_id: int) -> None:
         """Run a block with multiple runs"""
-        # Get prerandomized pictogram order
+        # Get randomize pictograms
         self.new_pictograms_order = self.df_pictogram_orders[f'block_{block_id}'].tolist()
         print('New pictograms order:', self.new_pictograms_order)
         # Initialize screen
-        self.screen.init_boxes(n_boxes=8)
+        self.screen.init_boxes(n_boxes=self.n_objs)
         self.screen.reorder_pictograms(self.new_pictograms_order)
         self.misc_marker_outlet.push_sample([f'pictograms order: {self.new_pictograms_order}'])
         self.screen.screen_warmup(3)
 
+        # Start block
         for run_id in range(self.n_runs):
             run_id = run_id + block_id * self.n_runs
+            # Start run
             self.misc_marker_outlet.push_sample([f'run_{run_id}-start'])
             self.run_run(run_id)
             self.misc_marker_outlet.push_sample([f'run_{run_id}-end'])
 
+            # Run rest
             self.misc_marker_outlet.push_sample([f'run_{run_id}_rest-start'])
             self.screen.draw_text(f'Run: {run_id + 1} complete. Press any key to start next run.')
             self.screen.win.flip()
+            print("###########################################")
+            print(f'Run: {run_id + 1} complete. Follow instructions on screen.')
+            print("###########################################")
             event.waitKeys()
             self.misc_marker_outlet.push_sample([f'run_{run_id}_rest-end'])
-            
 
         # Return to original pictogram positions to prevent double indexing
         self.screen.default_order_pictograms()
-        self.misc_marker_outlet.push_sample([f'pictograms order: {[i for i in range(8)]}'])
             
-    def run_run(self, run_id: int):
+    def run_run(self, run_id: int) -> None:
         """Run a single run with multiple trials"""
-        # Get prerandomized conditions order
+        # Get conditions order
         conditions_order = self.df_trial_orders[f'run_{run_id}'].tolist()
         self.misc_marker_outlet.push_sample([f'run:{run_id}; conditions order: {conditions_order}'])
 
+        # Start run
         for trial_id, condition in enumerate(conditions_order):
+            # Start trial
             self.misc_marker_outlet.push_sample([f'trial_{trial_id}-start;{condition}'])
-            self.run_trial(condition=condition, trial_id=trial_id, run_id=run_id)
+            self.run_trial(condition=condition, trial_id=trial_id, run_id=run_id, play_audio_once=False, verify_target=False)
             self.misc_marker_outlet.push_sample([f'trial_{trial_id}-end;{condition}'])
-            perf_sleep(1)
+            perf_sleep(1) # wait 1 second before saying done to keep response from last stimulus
             self.audio_controller.play_done()
 
+            # Start trial rest
             self.misc_marker_outlet.push_sample([f'trial_{trial_id}_rest-start;{condition}'])
             perf_sleep(self.trial_rest_duration) # 3 second rest after trials
             self.misc_marker_outlet.push_sample([f'trial_{trial_id}_rest-end;{condition}'])
-        # return pictograms to their original order
 
-    def run_trial(self, condition: str, trial_id: int, run_id: int, play_once: bool=False):
-        # Show stims
+    def run_trial(self, condition: str, trial_id: int, run_id: int, play_audio_once: bool=False, verify_target: bool=False) -> None:
+        # Display stimuli
         self.laser_controller.on()
         self.screen.screen_warmup(0.1)
         
@@ -233,7 +249,7 @@ class StimController:
         target_id = self.df_obj_orders[f'run_{run_id}'][f'trial_{trial_id}']
         target_obj = self.objects[target_id]
 
-        # Get ref and play audio cue
+        # Get ref object and play audio cue
         ref_id = np.random.choice([i for i in range(self.n_objs) if i!=target_id])
         ref_obj = self.objects[ref_id]
         print(f'target obj: {target_obj}, ref obj: {ref_obj}')
@@ -242,70 +258,71 @@ class StimController:
         if condition == 0:
             # Load codebook
             codebook = self.codebook_kolkhorst[target_id]
-            # Cue audio
-            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode, play_once=play_once)
+            # Play audio cue
+            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode, play_audio_once=play_audio_once)
             self.laser_controller.off()
-            # Verify target
-            if self.verify_lasers:
-                self.laser_controller.send_lasers_values([0 if i!= target_id else 1 for i in range(8)])
-                perf_sleep(1)
-                self.laser_controller.send_lasers_values([0] * 8)
-                perf_sleep(1)
-            # wait for 3~5 seconds
-            random_wait(3, 5)
+            # For familiarization purposes. Turn target stimulus on for 1s and off for 1s before starting trial for target verification.
+            if verify_target:
+                self.laser_controller.send_lasers_values([0 if i!= target_id else 1 for i in range(self.n_objs)])
+                perf_sleep(self.verify_duration[0])
+                self.laser_controller.send_lasers_values([0] * self.n_objs)
+                perf_sleep(self.verify_duration[1])
+            # wait for 3~5 seconds after audio cue
+            random_wait(self.random_wait_duration[0], self.random_wait_duration[1])
+            # Start trial
             self.laser_controller.run_trial_kolkhorst(codebook, target_id, trial_id=trial_id, run_id=run_id, on_duration=self.erp_on_duration, off_duration=self.erp_off_duration)
         elif condition == 1:
             # Load codebook
             codebook = self.codebook_fast_erp[target_id]
-            # Play audio
-            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode, play_once=play_once)
-            # Turn off lasers after key press
+            # Play audio cue
+            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode, play_audio_once=play_audio_once)
             self.laser_controller.off()
-            # Verify target
-            if self.verify_lasers:
-                self.laser_controller.send_lasers_values([0 if i!= target_id else 1 for i in range(8)])
-                perf_sleep(1)
-                self.laser_controller.send_lasers_values([0] * 8)
-                perf_sleep(1)
-            # wait for 3~5 seconds
-            random_wait(3, 5)
+            # For familiarization purposes. Turn target stimulus on for 1s and off for 1s before starting trial for target verification.
+            if verify_target:
+                self.laser_controller.send_lasers_values([0 if i!= target_id else 1 for i in range(self.n_objs)])
+                perf_sleep(self.verify_duration[0])
+                self.laser_controller.send_lasers_values([0] * self.n_objs)
+                perf_sleep(self.verify_duration[0])
+            # wait for 3~5 seconds after audio cue
+            random_wait(self.random_wait_duration[0], self.random_wait_duration[1])
+            # Start trial
             self.laser_controller.run_trial_erp(codebook, target_id, trial_id=trial_id, run_id=run_id, on_duration=self.erp_on_duration, off_duration=self.erp_off_duration)
         elif condition == 2:
             # Load codebook
             codebook = self.codebook_cvep[target_id]
             # Play audio cue
-            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode, play_once=play_once)
-            # Turn lasers off after key press
+            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode, play_audio_once=play_audio_once)
             self.laser_controller.off()
-            # Verify target
-            if self.verify_lasers:
-                self.laser_controller.send_lasers_values([0 if i!= target_id else 1 for i in range(8)])
-                perf_sleep(1)
-                self.laser_controller.send_lasers_values([0] * 8)
-                perf_sleep(1)
-            # wait for 3~5 seconds
-            random_wait(3, 5)
+            # For familiarization purposes. Turn target stimulus on for 1s and off for 1s before starting trial for target verification.
+            if verify_target:
+                self.laser_controller.send_lasers_values([0 if i!= target_id else 1 for i in range(self.n_objs)])
+                perf_sleep(self.verify_duration[0])
+                self.laser_controller.send_lasers_values([0] * self.n_objs)
+                perf_sleep(self.verify_duration[1])
+            # wait for 3~5 seconds after audio cue
+            random_wait(self.random_wait_duration[0], self.random_wait_duration[1])
+            # Start trial
             self.laser_controller.run_trial_cvep(codebook=codebook, target_id=target_id, trial_id=trial_id, run_id=run_id, on_duration=1/self.refresh_rate)
         elif condition == 3:
             # Load codebook
             codebook = self.codebook_fast_erp[target_id]
-            # Get new target id after rearranged pictograms
+            # Get new target id from rearranged pictograms
             new_target_id = self.new_pictograms_order.index(target_id)
             # Play audio cue
-            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode, play_once=play_once)
-            # Turn lasers off after key press
+            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode, play_audio_once=play_audio_once)
             self.laser_controller.off()
-            # Verify target
-            if self.verify_screen:
-                tmp_codebook = np.zeros((60, self.n_objs))
-                tmp_codebook[:, new_target_id] = 1
+            # For familiarization purposes. Turn target stimulus on for 1s and off for 1s before starting trial for target verification.
+            if verify_target:
                 # 1 second on
+                tmp_codebook = np.zeros((self.refresh_rate * self.verify_duration[0], self.n_objs)) # 1s codebook
+                tmp_codebook[:, new_target_id] = 1
                 self.screen.run_trial_cvep(tmp_codebook, new_target_id, trial_id=999, run_id=999)
                 # 1 second off
-                self.screen.screen_warmup(1)
+                self.screen.screen_warmup(self.verify_duration[1])
             # wait 3 to 5 seconds
-            random_wait(1, 3)
-            self.screen.screen_warmup(2)
+            random_wait(self.random_wait_duration[0] - self.verify_duration[0] - self.verify_duration[1], self.random_wait_duration[1] - self.verify_duration[0] - self.verify_duration[1])
+            self.screen.screen_warmup(self.verify_duration[0] + self.verify_duration[1])
+            # Start trial
             self.screen.run_trial_erp(codebook, target_id=new_target_id, trial_id=trial_id, run_id=run_id, n_stim_on_frames=self.erp_on_frames, n_stim_off_frames=self.erp_off_frames)
         elif condition == 4:
             # Load codebook
@@ -313,44 +330,55 @@ class StimController:
             # Get new target id after rearranged pictograms
             new_target_id = self.new_pictograms_order.index(target_id)
             # Play audio cue
-            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode, play_once=play_once)
-            # Turn lasers off after key press
+            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode, play_audio_once=play_audio_once)
             self.laser_controller.off()
-            # Verify target
-            if self.verify_screen:
-                # 1 second on then off
-                tmp_codebook = np.zeros((60, self.n_objs))
+            # For familiarization purposes. Turn target stimulus on for 1s and off for 1s before starting trial for target verification.
+            if verify_target:
+                # 1 second on
+                tmp_codebook = np.zeros((self.refresh_rate * self.verify_duration[0], self.n_objs))
                 tmp_codebook[:, new_target_id] = 1
                 self.screen.run_trial_cvep(tmp_codebook, new_target_id, trial_id=999, run_id=999)
                 # 1 second off
-                self.screen.screen_warmup(1)
+                self.screen.screen_warmup(self.verify_duration[1])
             # wait 3 to 5 seconds
-            random_wait(1, 3)
-            self.screen.screen_warmup(2)
+            random_wait(self.random_wait_duration[0] - self.verify_duration[0] - self.verify_duration[1], self.random_wait_duration[1] - self.verify_duration[0] - self.verify_duration[1])
+            self.screen.screen_warmup(self.verify_duration[0] + self.verify_duration[1])
+            # Start trial
             self.screen.run_trial_cvep(codebook, target_id=new_target_id, trial_id=trial_id, run_id=run_id)
         else:
             raise ValueError(f'Condition doesnt exist: {condition}')
 
-    def resting_state_eyes_open(self):
+    def resting_state_eyes_open(self) -> None:
+        """Resting state eyes open recording session."""
+        # Start countdown
         self.text_countdown(duration=10, text='Resting state. Eyes open.')
+        # Display a dot on screen
         self.screen.description_text.setHeight(200)
         self.screen.draw_text('.')
         self.screen.win.flip()
+
+        # Wait 2s before starting
         perf_sleep(2)
         self.marker_outlet.push_sample(['Start eyes open'])
         perf_sleep(self.resting_state_duration)
         self.marker_outlet.push_sample(['End eyes open'])
+        print('Resting state eyes open finished.\n')
+        # Display text.
         self.screen.description_text.setHeight(100)
         self.screen.draw_text('Resting state recording finished')
         self.screen.win.flip()
 
     def resting_state_eyes_closed(self):
+        """Resting state eyes closed recording session."""
+        # Start countdown
         self.text_countdown(duration=10, text='Resting state. Eyes closed.')
+        # Wait 2s before starting
         perf_sleep(2)
         self.marker_outlet.push_sample(['Start eyes closed'])
         perf_sleep(self.resting_state_duration)
         self.marker_outlet.push_sample(['End eyes closed'])
-
+        print('Resting state eyes closed finished.\n')
+        # Display text
         self.screen.description_text.setHeight(100)
         self.screen.draw_text('Resting state recording finished')
         self.screen.win.flip()
@@ -358,24 +386,27 @@ class StimController:
     def familiarization(self):
         while True:
             condition = int(input('Select condition:\n 0, 1, 2, 3, 4\n'))
-            play_once = int(input('Play once? 0, 1\n'))
             if condition not in [0, 1, 2, 3, 4]:
                 break
-            self.run_trial(condition, trial_id=7, run_id=3, play_once=play_once)
+            play_audio_once = int(input('Play once? 0, 1\n'))
+            verify_target = int(input('Verify target? 0, 1\n'))
+            run_id = np.random.choice(np.arange(self.n_runs * self.n_blocks))
+            trial_id = np.random.choice(np.arange(self.n_trials))
+            self.run_trial(condition, trial_id=trial_id, run_id=run_id, play_audio_once=play_audio_once, verify_target=verify_target)
+
+    def exit(self):
+        self.laser_controller.close()
+        self.button_box_controller.close()
+        self.screen.win.close()
+        exit(0)
 
 if __name__ == "__main__":
-    # # Set logging filename to ./logs/log_%Y-%m-%d_%H-%M-%S.log
-    # filename = datetime.datetime.now().strftime('./logs/log_%Y-%m-%d_%H-%M-%S.log')
-    # logging.basicConfig(
-    #     filename=filename, 
-    #     filemode='w',
-    #     level=logging.INFO, 
-    #     format='%(asctime)s - %(levelname)s - %(message)s'
-    # )
     controller = StimController()
-    # controller.resting_state_duration = 5
-    print('Press any button on the experiment window!\n')
-    controller.run_session()
+    try:
+        controller.run_session()
+    except KeyboardInterrupt:
+        print('Graceful quit.')
+        controller.exit()
     
 
 

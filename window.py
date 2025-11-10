@@ -167,10 +167,7 @@ class ScreenStimWindow:
         self.win.flip()
 
     def test_erp(self, n_trials: int=8):
-        """Test Run ERP protocol"""
-        new_idc = [1, 5, 0, 7, 2, 4, 3, 6]
-        self.reorder_pictograms(new_idc)
-        
+        """Test Run ERP protocol"""        
         # Load codebook
         codebooks = load_codebooks_block_2().astype(int).tolist()
         
@@ -180,9 +177,9 @@ class ScreenStimWindow:
         self.screen_warmup(duration=3)
         self.win.recordFrameIntervals = True
         for trial_id in range(n_trials):
-            target_id = np.random.randint(0, len(self.objects) + 1) # Get a random target
+            target_id = np.random.randint(0, self.n_objs) # Get a random target
             start_time = time.perf_counter()
-            self.run_trial_erp(codebooks[target_id], target_id=new_idc[target_id], trial_id=trial_id, run_id=999, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
+            self.run_trial_erp(codebooks[target_id], target_id=target_id, trial_id=trial_id, run_id=999, n_stim_on_frames=n_on_frames, n_stim_off_frames=n_off_frames)
             elapsed_time = time.perf_counter() - start_time
             trial_run_times.append(elapsed_time)
             self.screen_warmup(duration=3)
@@ -193,7 +190,8 @@ class ScreenStimWindow:
         print(f"Avg frame interval: {frame_intervals.mean()}")
         print(f"Min frame interval: {frame_intervals.min()}")
         print(f"Max frame interval: {frame_intervals.max()}")
-        print(f"Dropped frames: {n_dropped_frames}")
+        print(f'5 highest frame interval frame #:', np.argsort(frame_intervals)[-5:])
+        print(f"Dropped frames: {n_dropped_frames} out of {len(frame_intervals)}")
         print(f'Specified refresh rate: {self.refresh_rate}')
         print(f'# of dropped frames: {n_dropped_frames}')
         self.win.recordFrameIntervals = False
@@ -224,79 +222,14 @@ class ScreenStimWindow:
         print(f"Min frame interval: {frame_intervals.min()}")
         print(f"Max frame interval: {frame_intervals.max()}")
         print(f'5 highest frame interval frame #:', np.argsort(frame_intervals)[-5:])
-        print(f"Dropped frames: {n_dropped_frames}")
+        print(f"Dropped frames: {n_dropped_frames} out of {len(frame_intervals)}")
         print(f'Specified refresh rate: {self.refresh_rate}')
         print(f'# of dropped frames: {n_dropped_frames}')
         self.win.recordFrameIntervals = False
 
         print('Trial run times:', trial_run_times)
-        print('Mean trial run time (should be 12):', np.mean(trial_run_times))
-        
-    def test_isolated_flash(self, n_trials: int=8):
-        """Test Run CVEP protocol"""
-        # Init flash box with no pictograms
-        del self.boxes
-        self.init_boxes(n_boxes=1)
-        
-        self.screen_warmup(duration=3, draw_pictograms=False)
-        self.win.recordFrameIntervals = True
-        # run 10 trials with 1 warmup in-between
+        print('Mean trial run time (should be 12.016):', np.mean(trial_run_times))
 
-        trial_run_times = []
-        for trial_id in range(n_trials):
-            start_time = time.perf_counter()
-            self.run_trial_isolated_flash(n_flashes=12, trial_id=trial_id, run_id=999, n_stim_on_frames=1)
-            elapsed_time = time.perf_counter() - start_time
-            self.screen_warmup(3, draw_pictograms=False)
-            trial_run_times.append(elapsed_time)
-
-        # Log results
-        frame_intervals = np.array(self.win.frameIntervals)
-        n_dropped_frames = sum(frame_intervals > 1.5 * (1/self.refresh_rate))
-        print(f"Avg frame interval: {frame_intervals.mean()}")
-        print(f"Min frame interval: {frame_intervals.min()}")
-        print(f"Max frame interval: {frame_intervals.max()}")
-        print(f'5 highest frame interval frame #:', np.argsort(frame_intervals)[-5:])
-        print(f"Dropped frames: {n_dropped_frames}")
-        print(f'Specified refresh rate: {self.refresh_rate}')
-        print(f'# of dropped frames: {n_dropped_frames}')
-        self.win.recordFrameIntervals = False
-
-        print('Trial run times:', trial_run_times)
-        print('Mean trial run time (should be 12):', np.mean(trial_run_times))
-
-    def test_burst_flash(self, n_trials: int=8):
-        """Test Run CVEP protocol"""
-        # Init flash box with no pictograms
-        del self.boxes
-        self.init_boxes(n_boxes=1)
-        
-        self.screen_warmup(duration=3, draw_pictograms=False)
-        self.win.recordFrameIntervals = True
-        # run 10 trials with 1 warmup in-between
-
-        trial_run_times = []
-        for trial_id in range(n_trials):
-            start_time = time.perf_counter()
-            self.run_trial_burst_flash(n_flashes=12, trial_id=trial_id, run_id=999)
-            elapsed_time = time.perf_counter() - start_time
-            self.screen_warmup(3, draw_pictograms=False)
-            trial_run_times.append(elapsed_time)
-
-        # Log results
-        frame_intervals = np.array(self.win.frameIntervals)
-        n_dropped_frames = sum(frame_intervals > 1.5 * (1/self.refresh_rate))
-        print(f"Avg frame interval: {frame_intervals.mean()}")
-        print(f"Min frame interval: {frame_intervals.min()}")
-        print(f"Max frame interval: {frame_intervals.max()}")
-        print(f'5 highest frame interval frame #:', np.argsort(frame_intervals)[-5:])
-        print(f"Dropped frames: {n_dropped_frames}")
-        print(f'Specified refresh rate: {self.refresh_rate}')
-        print(f'# of dropped frames: {n_dropped_frames}')
-        self.win.recordFrameIntervals = False
-
-        print('Trial run times:', trial_run_times)
-        print('Mean trial run time (should be 12):', np.mean(trial_run_times))
 
 def main():
     objects = {

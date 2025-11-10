@@ -1,0 +1,29 @@
+{
+  "experiment_params": {
+    "objects": ["can", "bandage", "remote", "bottle", "candle", "box", "book", "cup"],
+    "conditions": ["scene_Kolkhorst", "scene_fastERP", "scene_cVEP", "screen_fastERP", "screen_cVEP"],
+    
+    "n_blocks": 3,
+    "n_runs": 4,
+    "n_trials": 10,
+    "trial_duration": 12,
+    "trial_duration_kolkhorst": 24,
+    "trial_rest_duration": 3,
+    "run_rest_duration": 20,
+    "block_rest_duration": 60,
+    "resting_state_duration": 90,
+    
+    "erp_on_duration": 0.1,
+    "erp_off_duration": 0.15,
+    "cvep_on_duration": 0.016666666666666666,
+    "cvep_off_duration": 0.0,
+
+  },
+  "setup_params": {
+    "order_path": "./config",
+    "audio_path": "./tts/queries/psychopy_slowed",
+    "refresh_rate": 60,
+
+
+  }
+}

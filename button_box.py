@@ -22,10 +22,10 @@ class ButtonBoxController:
             self.button_box.flush()
 
             text = ""
-            for _ in range(200):
+            for _ in range(300):
                 text = text + self.button_box.read().decode()
                 if "BITSI mode, Ready!\r\n" in text:
-                    print("Button box ready!")
+                    # print("Button box ready!")
                     break
         except:
             pass
