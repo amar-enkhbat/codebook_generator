@@ -5,3 +5,4 @@ log.log
 test*.ipynb
 test*.py
 logs/
+!test_setup.py
