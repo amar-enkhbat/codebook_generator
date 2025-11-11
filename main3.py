@@ -151,7 +151,7 @@ class StimController:
         print("###########################################")
         print('Follow instructions on screen.')
         print("###########################################")
-        event.waitKeys()
+        key = event.waitKeys()
         if key != ['y']:
             self.exit()
         self.laser_controller.off()

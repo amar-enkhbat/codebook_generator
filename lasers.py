@@ -177,10 +177,10 @@ if __name__ == '__main__':
     # lasers.run_quick_flash(n_trials=16, wait_low=1/60, wait_high=1/60)
     # lasers.run_isolated_flash(1)
     # lasers.run_burst_flash(2)
-    _ = input('Press any key!\n')
+    # _ = input('Press any key!\n')
     
-    lasers.test_erp(2)
-    lasers.test_cvep(2)
+    # lasers.test_erp(2)
+    # lasers.test_cvep(2)
     # _ = input('Press any key!\n')
     # lasers.test_erp_kolkhorst(10)
     # _ = input('Press any key!\n')
