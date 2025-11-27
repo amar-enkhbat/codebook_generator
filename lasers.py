@@ -158,6 +158,7 @@ class LaserController:
 
     def close(self) -> None:
         if self.teensy is not None:
+            self.off()
             self.teensy.close()
 
     def test_laser_order(self) -> None:
@@ -179,8 +180,11 @@ if __name__ == '__main__':
     # lasers.run_burst_flash(2)
     # _ = input('Press any key!\n')
     
-    # lasers.test_erp(2)
-    # lasers.test_cvep(2)
+    lasers.test_erp(1)
+    perf_sleep(5)
+    lasers.test_cvep(1)
+    perf_sleep(5)
+    lasers.test_erp_kolkhorst(1)
     # _ = input('Press any key!\n')
     # lasers.test_erp_kolkhorst(10)
     # _ = input('Press any key!\n')

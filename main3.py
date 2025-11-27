@@ -172,6 +172,33 @@ class StimController:
             event.waitKeys()
             self.misc_marker_outlet.push_sample([f'block_{block_id}_rest-end'])
             
+        self.screen.draw_sensor_box('black')
+        self.screen.draw_text('Start resting state eye open? y/n\n')
+        self.screen.win.flip()
+        print("###########################################")
+        print('Follow instructions on screen.')
+        print("###########################################")
+        key = event.waitKeys()
+        if key == ['y']:
+            self.resting_state_eyes_open()
+
+        self.screen.draw_text('Start resting state eye closed? y/n\n')
+        self.screen.win.flip()
+        print("###########################################")
+        print('Follow instructions on screen.')
+        print("###########################################")
+        key = event.waitKeys()
+        if key == ['y']:
+            self.resting_state_eyes_closed()
+
+        self.screen.draw_text('Start Refamiliarization? y/n\n')
+        self.screen.win.flip()
+        print("###########################################")
+        print('Follow instructions on screen.')
+        print("###########################################")
+        key = event.waitKeys()
+        if key == ['y']:
+            self.familiarization()
 
         self.screen.draw_text('Thank you! You have successfully completed the experiment!\nWait for the researcher for further instructions...')
         self.screen.win.flip()
@@ -384,6 +411,17 @@ class StimController:
         self.screen.win.flip()
         
     def familiarization(self):
+        # Audio cue, button box familiarization
+        while True:
+            target_obj_id = int(input('Target obj id: 0, 1, 2, 3, 4, 5, 6, 7\n'))
+            if target_obj_id not in [0, 1, 2, 3, 4, 5, 6, 7]:
+                break
+            mode = int(input('Mode: 0, 1\n'))
+            mode = 'scene' if mode == 0 else 'screen'
+            ref_obj = np.random.choice(list(self.objects.values()))
+            target_obj = self.objects[target_obj_id]
+            self.audio_controller.cue_audio(ref_obj=ref_obj, target_obj=target_obj, mode=mode)
+
         while True:
             condition = int(input('Select condition:\n 0, 1, 2, 3, 4\n'))
             if condition not in [0, 1, 2, 3, 4]:

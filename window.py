@@ -20,7 +20,8 @@ class ScreenStimWindow:
         self.win = visual.Window(size=(1920, 1080), winType='pyglet', fullscr=True, screen=1, units="pix", color='grey', waitBlanking=True, allowGUI=False)
         self.width, self.height = self.win.size
         self.actual_refresh_rate = int(round(self.win.getActualFrameRate(nMaxFrames=300, nWarmUpFrames=60)))
-        print('Calculated screen refresh rate:', self.refresh_rate)
+        print(f'Calculated screen refresh rate (should be {self.refresh_rate}):', self.actual_refresh_rate)
+
         
         self.sensor_box_size = 80
         self.stim_box_size = 150
@@ -244,13 +245,14 @@ def main():
     }
     screen = ScreenStimWindow(objects)
     # Set sensor box to black
-    screen.draw_sensor_box('black')
-    screen.draw_text('Press any key to continue')
-    screen.win.flip()
+    # screen.screen_warmup(100)
+    # screen.draw_sensor_box('black')
+    # screen.draw_text('Press any key to continue')
     event.waitKeys()
 
     screen.test_erp(1)
-    # screen.test_cvep(1)
+    screen.screen_warmup(5)
+    screen.test_cvep(1)
 
 if __name__ == '__main__':
     main()
