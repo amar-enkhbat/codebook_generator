@@ -181,9 +181,9 @@ if __name__ == '__main__':
     # _ = input('Press any key!\n')
     
     lasers.test_erp(1)
-    perf_sleep(5)
+    perf_sleep(3)
     lasers.test_cvep(1)
-    perf_sleep(5)
+    perf_sleep(3)
     lasers.test_erp_kolkhorst(1)
     # _ = input('Press any key!\n')
     # lasers.test_erp_kolkhorst(10)

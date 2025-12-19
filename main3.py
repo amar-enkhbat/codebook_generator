@@ -220,7 +220,11 @@ class StimController:
 
         # Start block
         for run_id in range(self.n_runs):
+            
             run_id = run_id + block_id * self.n_runs
+            if run_id != 1:
+                continue
+            print("rUND iD:", run_id)
             # Start run
             self.misc_marker_outlet.push_sample([f'run_{run_id}-start'])
             self.run_run(run_id)

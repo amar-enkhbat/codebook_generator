@@ -245,14 +245,15 @@ def main():
     }
     screen = ScreenStimWindow(objects)
     # Set sensor box to black
-    # screen.screen_warmup(100)
+    screen.screen_warmup(10000)
     # screen.draw_sensor_box('black')
     # screen.draw_text('Press any key to continue')
     event.waitKeys()
-
+    screen.screen_warmup(3)
     screen.test_erp(1)
-    screen.screen_warmup(5)
+    screen.screen_warmup(3)
     screen.test_cvep(1)
+
 
 if __name__ == '__main__':
     main()
