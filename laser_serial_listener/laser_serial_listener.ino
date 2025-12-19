@@ -1,3 +1,5 @@
+// Arduino IDE 2.3.6, Teensy 4.0
+
 const int ledPins[] = {0, 1, 2, 3, 4, 5, 6, 7};  // LED pins
 
 void setup() {
