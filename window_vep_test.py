@@ -17,8 +17,8 @@ class ScreenStimWindow:
         self.refresh_rate = 60 # Hz
         
         # Screen (condition 4)
-        # self.win = visual.Window(size=(1920, 1080), winType='pyglet', fullscr=True, screen=1, units="pix", color='grey', waitBlanking=True, allowGUI=False)
-        self.win = visual.Window(size=(2560, 1440), winType='pyglet', fullscr=True, screen=1, units="pix", color='grey', waitBlanking=True, allowGUI=False)
+        self.win = visual.Window(size=(1920, 1080), winType='pyglet', fullscr=True, screen=1, units="pix", color='grey', waitBlanking=True, allowGUI=False)
+        # self.win = visual.Window(size=(2560, 1440), winType='pyglet', fullscr=True, screen=1, units="pix", color='grey', waitBlanking=True, allowGUI=False)
         self.width, self.height = self.win.size
         self.actual_refresh_rate = int(round(self.win.getActualFrameRate(nMaxFrames=300, nWarmUpFrames=60)))
         print(f'Calculated screen refresh rate (should be {self.refresh_rate}):', self.actual_refresh_rate)
