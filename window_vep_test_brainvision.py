@@ -1,6 +1,6 @@
 import time
 import numpy as np
-from psychopy import visual, event
+from psychopy import visual, event, core
 from typing import Dict, List
 from rusocsci import buttonbox
 from utils import load_codebooks_block_2, load_codebooks_block_3, random_wait
@@ -52,6 +52,7 @@ class ScreenStimWindow:
     def send_marker(self, code: int):
         """Send a hardware trigger code (1-255) to BrainVision, then reset to 0."""
         self.bb.sendMarker(val=code)
+        core.wait(0.002)  # 2ms delay for the code to be recorded by BrainVision
         self.bb.sendMarker(val=0)
 
     def init_sensor(self):

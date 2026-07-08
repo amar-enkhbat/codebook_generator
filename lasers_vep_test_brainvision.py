@@ -36,6 +36,9 @@ class LaserController:
     def send_marker(self, code: int) -> None:
         """Send a hardware trigger code (1-255) to BrainVision, then reset to 0."""
         self.bb.sendMarker(val=code)
+        end_time = time.perf_counter() + 0.002  # 2ms delay for the code to be recorded by BrainVision
+        while time.perf_counter() <= end_time:
+            pass
         self.bb.sendMarker(val=0)
 
     def send_lasers_values(self, values: List[int]) -> None:
