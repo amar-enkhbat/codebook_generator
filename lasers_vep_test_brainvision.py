@@ -141,6 +141,33 @@ class LaserController:
         print('Trial run times:', trial_run_times)
         print('Mean trial run time (should be 12):', np.mean(trial_run_times))
 
+    def test_vep(self, n_trials=8):
+        """Test Run ERP protocol"""
+        # Create new codebook with only one target
+        sequence_length = 600 # roughly 60 seconds
+        sequence = []
+        while len(sequence) < sequence_length:
+            run_length = np.random.randint(5, 11)
+            zero_run = np.zeros(run_length, dtype=np.uint8).tolist()
+            sequence.extend(zero_run)
+            sequence.append(1)
+        sequence = np.array(sequence)[:sequence_length]
+
+        codebooks = np.zeros((8, sequence_length, 8), dtype=np.int8)
+        codebooks[0, :, 0] = sequence
+        codebook = codebooks.tolist()[0]
+
+        trial_run_times = []
+        for trial_id in range(n_trials):
+            start_time = time.perf_counter()
+            self.run_trial_erp(codebook, target_id=0, trial_id=trial_id, run_id=999, on_duration=1/60, off_duration=6/60)
+            elapsed_time = time.perf_counter() - start_time
+            trial_run_times.append(elapsed_time)
+            perf_sleep(3)
+
+        print('Trial run times:', trial_run_times)
+        print('Mean trial run time (should be 70):', np.mean(trial_run_times))
+
     def test_erp_kolkhorst(self, n_trials=8):
         """Test Run ERP protocol"""
         codebook = load_codebooks_block_1()[0].astype(int).tolist()
@@ -166,13 +193,29 @@ class LaserController:
         trial_run_times = []
         for trial_id in range(n_trials):
             start_time = time.perf_counter()
-            self.run_trial_cvep(codebook, target_id=0, trial_id=trial_id, run_id=999, on_duration=2)
+            self.run_trial_cvep(codebook, target_id=0, trial_id=trial_id, run_id=999, on_duration=1/60)
             elapsed_time = time.perf_counter() - start_time
             trial_run_times.append(elapsed_time)
             perf_sleep(3)
 
         print('Trial run times:', trial_run_times)
         print('Mean trial run time (should be 12):', np.mean(trial_run_times))
+
+    def test_cvep_vep(self, n_trials=8):
+        """Test Run ERP protocol"""
+        codebook = load_codebooks_block_3()[0].astype(int)
+        codebook[:, 1:] = 0
+
+        trial_run_times = []
+        for trial_id in range(n_trials):
+            start_time = time.perf_counter()
+            self.run_trial_cvep(codebook, target_id=0, trial_id=trial_id, run_id=999, on_duration=1/60)
+            elapsed_time = time.perf_counter() - start_time
+            trial_run_times.append(elapsed_time)
+            perf_sleep(3)
+
+        print('Trial run times:', trial_run_times)
+        print('Mean trial run time (should be 12.6):', np.mean(trial_run_times))
 
     def close(self) -> None:
         if self.teensy is not None:
@@ -187,27 +230,19 @@ class LaserController:
             perf_sleep(1)
 
 if __name__ == '__main__':
-    lasers = LaserController(port="COM14")
-    # lasers.on()
+    np.random.seed(42)
+    lasers = LaserController(port="COM13")
+    lasers.on()
+    _ = input('Press any key to continue.\nVEP\n')
     lasers.off()
-    _ = input('Press any key to continue.\n')
-    # lasers.off()
-    # lasers.test_laser_order()
-    # lasers.run_quick_flash(n_trials=8)
-    # lasers.run_quick_flash(n_trials=16, wait_low=1/60, wait_high=1/60)
-    # lasers.run_isolated_flash(1)
-    # lasers.run_burst_flash(2)
-    # _ = input('Press any key!\n')
+    for _ in range(5):
+        perf_sleep(3)
+        lasers.test_vep(1)
+        perf_sleep(10)
 
-    # lasers.test_erp(1)
-    # perf_sleep(3)
-    perf_sleep(3)
-    lasers.test_cvep(1)
-
-    _ = input('Press any key to continue.\n')
-    perf_sleep(3)
-    # lasers.test_erp_kolkhorst(1)
-    # _ = input('Press any key!\n')
-    # lasers.test_erp_kolkhorst(10)
-    # _ = input('Press any key!\n')
-
+    _ = input('Press any key to continue.\ncVEP\n')
+    lasers.off()
+    for _ in range(10):
+        perf_sleep(3)
+        lasers.test_cvep_vep(1)
+        perf_sleep(10)
